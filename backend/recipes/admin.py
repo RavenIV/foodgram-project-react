@@ -10,7 +10,12 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('email', 'username')
 
 
+class IngridientInline(admin.StackedInline):
+    model = RecipeIngridients
+
+
 class RecipeAdmin(admin.ModelAdmin):
+    inlines = [IngridientInline]
     list_display = ('name', 'author', 'users_favorited')
     list_filter = ('name', 'author', 'tags')
 

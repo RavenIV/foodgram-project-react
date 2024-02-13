@@ -6,9 +6,9 @@ from .constants import MIN_COOKING_TIME
 
 
 class User(AbstractUser):
-    first_name = models.CharField('Имя', max_length=30)
+    first_name = models.CharField('Имя', max_length=150)
     last_name = models.CharField('Фамилия', max_length=150)
-    email = models.EmailField()
+    email = models.EmailField(max_length=254)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -65,7 +65,7 @@ class Ingridient(models.Model):
         verbose_name_plural = 'ингредиенты'
 
     def __str__(self):
-        return f'{self.name:.30}'
+        return f'{self.name:.30}, {self.measurement_unit:.30}'
 
 
 class Recipe(models.Model):
@@ -107,8 +107,8 @@ class RecipeIngridients(models.Model):
     amount = models.PositiveSmallIntegerField('Количество')
 
     class Meta:
-        verbose_name = 'Ингредиенты рецепта'
-        verbose_name_plural = 'ингредиенты рецептов'
+        verbose_name = 'Ингредиент рецепта'
+        verbose_name_plural = 'ингредиенты рецепта'
 
     def __str__(self):
         return f'{self.recipe} {self.ingridient} {self.amount}'

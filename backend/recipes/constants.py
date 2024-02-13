@@ -1,0 +1,1 @@
+MIN_COOKING_TIME = 1

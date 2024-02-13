@@ -6,6 +6,9 @@ from .constants import MIN_COOKING_TIME
 
 
 class User(AbstractUser):
+    first_name = models.CharField('Имя', max_length=30)
+    last_name = models.CharField('Фамилия', max_length=150)
+    email = models.EmailField()
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -50,7 +53,7 @@ class Tag(models.Model):
         verbose_name_plural = 'теги'
 
     def __str__(self):
-        return f'{self.name=:.30}, {self.color=}, {self.slug=:.30}'
+        return f'{self.name:.30}'
 
 
 class Ingridient(models.Model):
@@ -58,11 +61,11 @@ class Ingridient(models.Model):
     measurement_unit = models.CharField('Единицы измерения', max_length=200)
 
     class Meta:
-        verbose_name = 'Ингридиент'
-        verbose_name_plural = 'ингридиенты'
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'ингредиенты'
 
     def __str__(self):
-        return f'{self.name=:.30} {self.measurement_unit=:.30}'
+        return f'{self.name:.30}'
 
 
 class Recipe(models.Model):
@@ -73,7 +76,7 @@ class Recipe(models.Model):
     image = models.ImageField('Картинка', upload_to='recipes/images/')
     text = models.TextField('Описание')
     ingridients = models.ManyToManyField(
-        Ingridient, through='RecipeIngridients', verbose_name='Ингридиенты'
+        Ingridient, through='RecipeIngridients', verbose_name='Ингредиенты'
     )
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.PositiveSmallIntegerField(
@@ -95,9 +98,17 @@ class Recipe(models.Model):
 
 
 class RecipeIngridients(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    ingridient = models.ForeignKey(Ingridient, on_delete=models.PROTECT)
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
+    )
+    ingridient = models.ForeignKey(
+        Ingridient, on_delete=models.PROTECT, verbose_name='Ингредиент'
+    )
     amount = models.PositiveSmallIntegerField('Количество')
+
+    class Meta:
+        verbose_name = 'Ингредиенты рецепта'
+        verbose_name_plural = 'ингредиенты рецептов'
 
     def __str__(self):
         return f'{self.recipe} {self.ingridient} {self.amount}'
@@ -117,7 +128,9 @@ class Favorite(models.Model):
                 fields=['user', 'favorite_recipe'], name='unique_favorites'
             ),
         ]
-    
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'избранные'
+
     def __str__(self):
         return f'{self.user} {self.favorite_recipe}'
 
@@ -137,6 +150,8 @@ class ShoppingCart(models.Model):
                 name='unique_shopping_recipes'
             ),
         ]
+        verbose_name = 'Корзина покупок'
+        verbose_name_plural = 'корзины покупок'
 
     def __str__(self):
         return f'{self.user} {self.shopping_recipe}'

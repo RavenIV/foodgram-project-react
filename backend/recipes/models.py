@@ -116,10 +116,12 @@ class RecipeIngridients(models.Model):
 
 class Favorite(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='favorite_recipes'
+        User, on_delete=models.CASCADE, related_name='favorite_recipes',
+        verbose_name='Пользователь'
     )
     favorite_recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, related_name='users_favorited'
+        Recipe, on_delete=models.CASCADE, related_name='users_favorited',
+        verbose_name='Избранный рецепт'
     )
 
     class Meta:
@@ -135,12 +137,14 @@ class Favorite(models.Model):
         return f'{self.user} {self.favorite_recipe}'
 
 
-class ShoppingCart(models.Model):
+class Shopping(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='shopping_cart'
+        User, on_delete=models.CASCADE, related_name='shopping_cart',
+        verbose_name='Пользователь'
     )
     shopping_recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, related_name='users_added_to_cart'
+        Recipe, on_delete=models.CASCADE, related_name='users_added_to_cart',
+        verbose_name='Рецепт'
     )
 
     class Meta:
@@ -150,8 +154,8 @@ class ShoppingCart(models.Model):
                 name='unique_shopping_recipes'
             ),
         ]
-        verbose_name = 'Корзина покупок'
-        verbose_name_plural = 'корзины покупок'
+        verbose_name = 'Покупка'
+        verbose_name_plural = 'корзина покупок'
 
     def __str__(self):
         return f'{self.user} {self.shopping_recipe}'

@@ -2,16 +2,28 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
     User, Recipe, Tag, Ingridient, Subscription,
-    RecipeIngridients, Favorite, ShoppingCart
+    RecipeIngridients, Favorite, Shopping
 )
+
+
+class FavoriteInline(admin.TabularInline):
+    model = Favorite
+    extra = 0
+
+
+class ShoppingInline(admin.TabularInline):
+    model = Shopping
+    extra = 0
+
+
+class IngridientInline(admin.TabularInline):
+    model = RecipeIngridients
+    extra = 0
 
 
 class CustomUserAdmin(UserAdmin):
     list_filter = ('email', 'username')
-
-
-class IngridientInline(admin.StackedInline):
-    model = RecipeIngridients
+    inlines = (FavoriteInline, ShoppingInline)
 
 
 class RecipeAdmin(admin.ModelAdmin):
@@ -33,6 +45,3 @@ admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(Ingridient, IngridientAdmin)
 admin.site.register(Tag)
 admin.site.register(Subscription)
-admin.site.register(RecipeIngridients)
-admin.site.register(Favorite)
-admin.site.register(ShoppingCart)

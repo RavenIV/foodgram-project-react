@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.db.models import Count
 from .models import (
     User, Recipe, Tag, Ingridient, Subscription,
     RecipeIngridients, Favorite, Shopping
@@ -28,11 +29,17 @@ class CustomUserAdmin(UserAdmin):
 
 class RecipeAdmin(admin.ModelAdmin):
     inlines = [IngridientInline]
-    list_display = ('name', 'author', 'users_favorited')
+    list_display = ('name', 'author', 'favorited_count')
     list_filter = ('name', 'author', 'tags')
 
-    def users_favorited(self, obj):
-        return obj.users_favorited.count()
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.annotate(
+            favorited_count=Count('users_favorited', distinct=True),
+        )
+
+    def favorited_count(self, obj):
+        return obj.favorited_count
 
 
 class IngridientAdmin(admin.ModelAdmin):
@@ -45,3 +52,10 @@ admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(Ingridient, IngridientAdmin)
 admin.site.register(Tag)
 admin.site.register(Subscription)
+admin.site.register(Favorite)
+admin.site.register(Shopping)
+admin.site.site_header = 'Foodgram Admin'
+admin.site.site_title = 'Foodgram Admin Portal'
+admin.site.index_title = (
+    'Добро пожаловать на портал администратора Foodgram'
+)

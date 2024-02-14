@@ -8,7 +8,7 @@ from .constants import MIN_COOKING_TIME
 class User(AbstractUser):
     first_name = models.CharField('Имя', max_length=150)
     last_name = models.CharField('Фамилия', max_length=150)
-    email = models.EmailField(max_length=254)
+    email = models.EmailField(unique=True, max_length=254)
 
     class Meta:
         verbose_name = 'Пользователь'

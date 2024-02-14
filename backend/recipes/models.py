@@ -57,7 +57,7 @@ class Tag(models.Model):
         return f'{self.name:.30}'
 
 
-class Ingridient(models.Model):
+class Ingredient(models.Model):
     name = models.CharField('Название', max_length=200)
     measurement_unit = models.CharField('Единицы измерения', max_length=200)
 
@@ -76,8 +76,8 @@ class Recipe(models.Model):
     name = models.CharField('Название', max_length=200)
     image = models.ImageField('Картинка', upload_to='recipes/images/')
     text = models.TextField('Описание')
-    ingridients = models.ManyToManyField(
-        Ingridient, through='RecipeIngridients', verbose_name='Ингредиенты'
+    ingredients = models.ManyToManyField(
+        Ingredient, through='RecipeIngredients', verbose_name='Ингредиенты'
     )
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.PositiveSmallIntegerField(
@@ -98,12 +98,12 @@ class Recipe(models.Model):
         return f'{self.name:.50}'
 
 
-class RecipeIngridients(models.Model):
+class RecipeIngredients(models.Model):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
     )
     ingridient = models.ForeignKey(
-        Ingridient, on_delete=models.PROTECT, verbose_name='Ингредиент'
+        Ingredient, on_delete=models.PROTECT, verbose_name='Ингредиент'
     )
     amount = models.PositiveSmallIntegerField('Количество')
 

@@ -3,6 +3,8 @@ from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
+from recipes.models import Tag, Ingredient
+
 User = get_user_model()
 
 
@@ -30,3 +32,17 @@ class FoodgramUserSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         return obj in obj.subscribing.all()
+
+
+class TagSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Tag
+        fields = '__all__'
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Ingredient
+        fields = '__all__'

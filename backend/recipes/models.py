@@ -14,6 +14,7 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'пользователи'
         default_related_name = 'users'
+        ordering = ['username']
 
 
 class Subscription(models.Model):

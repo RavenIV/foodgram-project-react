@@ -83,7 +83,10 @@ REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-    ]
+    ],
+
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.FoodgramPagination',
+    'PAGE_SIZE': 6,
 
 }
 
@@ -93,7 +96,10 @@ DJOSER = {
         'user_create': 'api.serializers.CustomUserCreateSerializer',
         'current_user': 'api.serializers.UserSerializer',
         'user': 'api.serializers.UserSerializer'
-    }
+    },
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.AllowAny'],
+    },
 
 }
 

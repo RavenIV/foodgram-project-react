@@ -6,7 +6,7 @@ from rest_framework.validators import UniqueValidator
 User = get_user_model()
 
 
-class CustomUserCreateSerializer(UserCreateSerializer):
+class FoodgramUserCreateSerializer(UserCreateSerializer):
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
@@ -18,7 +18,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         )
 
 
-class UserSerializer(serializers.ModelSerializer):
+class FoodgramUserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:

@@ -101,11 +101,11 @@ class Recipe(models.Model):
 class Meal(models.Model):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, verbose_name='Рецепт',
-        related_name='recipe_to_ingredient'
+        # related_name='recipe_to_ingredient'
     )
     ingredient = models.ForeignKey(
         Ingredient, on_delete=models.PROTECT, verbose_name='Ингредиент',
-        related_name='ingredient_to_recipe'
+        # related_name='ingredient_to_recipe',
     )
     amount = models.PositiveSmallIntegerField('Количество')
 

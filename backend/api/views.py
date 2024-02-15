@@ -5,7 +5,10 @@ from rest_framework.filters import SearchFilter
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 
 from recipes.models import Tag, Ingredient, Recipe
-from .serializers import TagSerializer, IngredientSerializer, RecipeReadSerializer
+from .serializers import (
+    TagSerializer, IngredientSerializer,
+    RecipeReadSerializer, RecipeCreateUpdateSerializer
+)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -41,3 +44,7 @@ class RecipeViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return RecipeReadSerializer
+        return RecipeCreateUpdateSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)

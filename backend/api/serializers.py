@@ -1,4 +1,8 @@
+import base64
+
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
+from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -49,10 +53,12 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class MealSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(source='ingredient.id')
-    name = serializers.CharField(source='ingredient.name')
+    id = serializers.PrimaryKeyRelatedField(
+        source='ingredient', read_only=True
+    )
+    name = serializers.CharField(source='ingredient.name', read_only=True)
     measurement_unit = serializers.CharField(
-        source='ingredient.measurement_unit'
+        source='ingredient.measurement_unit', read_only=True
     )
 
     class Meta:
@@ -68,7 +74,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = FoodgramUserSerializer(read_only=True)
     ingredients = MealSerializer(
-        source='recipe_to_ingredient', many=True, read_only=True
+        source='meal_set', many=True, read_only=True
     )
 
     class Meta:
@@ -80,8 +86,83 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
+    def get_user(self):
+        return self.context['request'].user
+
     def get_is_favorited(self, recipe):
+        if isinstance(self.get_user(), AnonymousUser):
+            return False
         return recipe in self.context['request'].user.favorite_recipes.all()
 
     def get_is_in_shopping_cart(self, recipe):
+        if isinstance(self.get_user(), AnonymousUser):
+            return False
         return recipe in self.context['request'].user.shopping_cart.all()
+
+
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, image = data.split(';base64,')
+            extension = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(image), name=f'temp.{extension}')
+        return super().to_internal_value(data)
+
+
+class MealCreateSerializer(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(
+        source='ingredient', read_only=False,
+        required=True, queryset=Ingredient.objects.all()
+    )
+
+    class Meta:
+        model = Meal
+        fields = ('id', 'amount')
+
+
+class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
+    ingredients = MealCreateSerializer(many=True, source='meal_set')
+    image = Base64ImageField()
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all()
+    )
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'ingredients', 'tags', 'image', 'name', 'text', 'cooking_time'
+        )
+
+    def create(self, validated_data):
+        ingredients_data = validated_data.pop('meal_set')
+        tags_data = validated_data.pop('tags')
+        recipe = Recipe.objects.create(**validated_data)
+        for tag in tags_data:
+            recipe.tags.add(tag)
+        for ingredient in ingredients_data:
+            Meal.objects.create(
+                recipe=recipe,
+                ingredient=ingredient['ingredient'],
+                amount=ingredient['amount']
+            )
+        return recipe
+
+    # def update(self, recipe, validated_data):
+    #     recipe.name = validated_data.get('name', recipe.name)
+    #     recipe.image = validated_data.get('image', recipe.image)
+    #     recipe.text = validated_data.get('text', recipe.text)
+    #     recipe.cooking_time = validated_data.get(
+    #         'cooking_time', recipe.cooking_time
+    #     )
+    #     tags_data = validated_data.pop('tags')
+    #     for tag in tags_data:
+    #         if tag not in recipe.tags.all():
+    #             recipe.tags.add(tag)
+    #     ingredients_data = validated_data.pop('meal_set')
+    #     for ingredient in ingredients_data:
+    #         meal, created = Meal.objects.get_or_create(
+    #             recipe=recipe, ingredient=ingredient['ingredient']
+    #         )
+    #         meal.amount = ingredient.get('amount', meal.amount)
+    #     return recipe
+

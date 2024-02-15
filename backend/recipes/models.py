@@ -77,7 +77,7 @@ class Recipe(models.Model):
     image = models.ImageField('Картинка', upload_to='recipes/images/')
     text = models.TextField('Описание')
     ingredients = models.ManyToManyField(
-        Ingredient, through='RecipeIngredients', verbose_name='Ингредиенты'
+        Ingredient, through='Meal', verbose_name='Ингредиенты'
     )
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.PositiveSmallIntegerField(
@@ -98,12 +98,14 @@ class Recipe(models.Model):
         return f'{self.name:.50}'
 
 
-class RecipeIngredients(models.Model):
+class Meal(models.Model):
     recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
+        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт',
+        related_name='recipe_to_ingredient'
     )
-    ingridient = models.ForeignKey(
-        Ingredient, on_delete=models.PROTECT, verbose_name='Ингредиент'
+    ingredient = models.ForeignKey(
+        Ingredient, on_delete=models.PROTECT, verbose_name='Ингредиент',
+        related_name='ingredient_to_recipe'
     )
     amount = models.PositiveSmallIntegerField('Количество')
 
@@ -112,7 +114,7 @@ class RecipeIngredients(models.Model):
         verbose_name_plural = 'ингредиенты рецепта'
 
     def __str__(self):
-        return f'{self.recipe} {self.ingridient} {self.amount}'
+        return f'{self.recipe} {self.ingredient} {self.amount}'
 
 
 class Favorite(models.Model):

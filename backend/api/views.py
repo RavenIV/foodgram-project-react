@@ -2,13 +2,14 @@ from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 
-from recipes.models import Tag, Ingredient
-from .serializers import TagSerializer, IngredientSerializer
+from recipes.models import Tag, Ingredient, Recipe
+from .serializers import TagSerializer, IngredientSerializer, RecipeReadSerializer
 
 
 class CustomUserViewSet(UserViewSet):
+    http_method_names = ['get', 'post']
 
     @action(["get"], detail=False, permission_classes=[CurrentUserOrAdmin])
     def me(self, request, *args, **kwargs):
@@ -29,3 +30,14 @@ class IngredientViewSet(ReadOnlyModelViewSet):
     pagination_class = None
     filter_backends = [SearchFilter]
     search_fields = ['name']
+
+
+class RecipeViewSet(ModelViewSet):
+    queryset = Recipe.objects.prefetch_related(
+        'ingredients', 'tags', 'author'
+    )
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return RecipeReadSerializer

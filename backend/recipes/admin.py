@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
 from .models import (
     User, Recipe, Tag, Ingredient, Subscription,
-    RecipeIngredients, Favorite, Shopping
+    Meal, Favorite, Shopping
 )
 
 
@@ -18,7 +18,7 @@ class ShoppingInline(admin.TabularInline):
 
 
 class IngredientInline(admin.TabularInline):
-    model = RecipeIngredients
+    model = Meal
     extra = 0
 
 

@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from .constants import MIN_COOKING_TIME
+from .constants import MIN_COOKING_TIME, MIN_INGREDIENT_AMOUNT
 
 
 class User(AbstractUser):
@@ -101,17 +101,23 @@ class Recipe(models.Model):
 class Meal(models.Model):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, verbose_name='Рецепт',
-        # related_name='recipe_to_ingredient'
     )
     ingredient = models.ForeignKey(
         Ingredient, on_delete=models.PROTECT, verbose_name='Ингредиент',
-        # related_name='ingredient_to_recipe',
     )
-    amount = models.PositiveSmallIntegerField('Количество')
+    amount = models.PositiveSmallIntegerField(
+        'Количество', validators=[MinValueValidator(MIN_INGREDIENT_AMOUNT),]
+    )
 
     class Meta:
         verbose_name = 'Ингредиент рецепта'
         verbose_name_plural = 'ингредиенты рецепта'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'ingredient'],
+                name='unique_recipe_ingredient'
+            ),
+        ]
 
     def __str__(self):
         return f'{self.recipe} {self.ingredient} {self.amount}'

@@ -2,6 +2,7 @@ from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
+from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 
 from recipes.models import Tag, Ingredient, Recipe
@@ -47,4 +48,25 @@ class RecipeViewSet(ModelViewSet):
         return RecipeCreateUpdateSerializer
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        return serializer.save(author=self.request.user)
+
+    def perform_update(self, serializer):
+        return serializer.save(author=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        recipe = self.perform_create(serializer)
+        recipe_serializer = RecipeReadSerializer(
+            recipe, context={'request': request}
+        )
+        return Response(recipe_serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        recipe = self.perform_update(serializer)
+        recipe_serializer = RecipeReadSerializer(
+            recipe, context={'request': request}
+        )
+        return Response(recipe_serializer.data)

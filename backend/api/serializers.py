@@ -54,7 +54,8 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class MealSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(
-        source='ingredient', read_only=True
+        source='ingredient', read_only=False,
+        required=True, queryset=Ingredient.objects.all()
     )
     name = serializers.CharField(source='ingredient.name', read_only=True)
     measurement_unit = serializers.CharField(
@@ -92,12 +93,12 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     def get_is_favorited(self, recipe):
         if isinstance(self.get_user(), AnonymousUser):
             return False
-        return recipe in self.context['request'].user.favorite_recipes.all()
+        return recipe in self.get_user().favorite_recipes.all()
 
     def get_is_in_shopping_cart(self, recipe):
         if isinstance(self.get_user(), AnonymousUser):
             return False
-        return recipe in self.context['request'].user.shopping_cart.all()
+        return recipe in self.get_user().shopping_cart.all()
 
 
 class Base64ImageField(serializers.ImageField):
@@ -105,33 +106,38 @@ class Base64ImageField(serializers.ImageField):
         if isinstance(data, str) and data.startswith('data:image'):
             format, image = data.split(';base64,')
             extension = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(image), name=f'temp.{extension}')
+            data = ContentFile(
+                base64.b64decode(image), name=f'temp.{extension}'
+            )
         return super().to_internal_value(data)
 
 
-class MealCreateSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(
-        source='ingredient', read_only=False,
-        required=True, queryset=Ingredient.objects.all()
-    )
-
-    class Meta:
-        model = Meal
-        fields = ('id', 'amount')
-
-
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
-    ingredients = MealCreateSerializer(many=True, source='meal_set')
-    image = Base64ImageField()
+    ingredients = MealSerializer(
+        many=True, source='meal_set', required=True,
+    )
+    image = Base64ImageField(required=True)
     tags = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Tag.objects.all()
+        many=True, queryset=Tag.objects.all(), required=True,
     )
 
     class Meta:
         model = Recipe
         fields = (
-            'ingredients', 'tags', 'image', 'name', 'text', 'cooking_time'
+            'ingredients', 'tags',
+            'image', 'name', 'text', 'cooking_time'
         )
+
+    def validate(self, data):
+        tags = data.get('tags')
+        meal = data.get('meal_set')
+        ingredients = [ingredient['ingredient'] for ingredient in meal]
+        if (
+            not tags or meal or len(tags) != len(set(tags))
+            or len(ingredients) != len(set(ingredients))
+        ):
+            raise serializers.ValidationError()
+        return data
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('meal_set')
@@ -147,22 +153,23 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             )
         return recipe
 
-    # def update(self, recipe, validated_data):
-    #     recipe.name = validated_data.get('name', recipe.name)
-    #     recipe.image = validated_data.get('image', recipe.image)
-    #     recipe.text = validated_data.get('text', recipe.text)
-    #     recipe.cooking_time = validated_data.get(
-    #         'cooking_time', recipe.cooking_time
-    #     )
-    #     tags_data = validated_data.pop('tags')
-    #     for tag in tags_data:
-    #         if tag not in recipe.tags.all():
-    #             recipe.tags.add(tag)
-    #     ingredients_data = validated_data.pop('meal_set')
-    #     for ingredient in ingredients_data:
-    #         meal, created = Meal.objects.get_or_create(
-    #             recipe=recipe, ingredient=ingredient['ingredient']
-    #         )
-    #         meal.amount = ingredient.get('amount', meal.amount)
-    #     return recipe
-
+    def update(self, recipe, validated_data):
+        recipe.name = validated_data.get('name', recipe.name)
+        recipe.image = validated_data.get('image', recipe.image)
+        recipe.text = validated_data.get('text', recipe.text)
+        recipe.cooking_time = validated_data.get(
+            'cooking_time', recipe.cooking_time
+        )
+        if 'tags' in validated_data:
+            tags_data = validated_data.pop('tags')
+            recipe.tags.set([tag for tag in tags_data])
+        if 'meal_set' in validated_data:
+            ingredients_data = validated_data.pop('meal_set')
+            recipe.ingredients.clear()
+            for data in ingredients_data:
+                recipe.ingredients.add(
+                    data['ingredient'],
+                    through_defaults={'amount': data['amount']}
+                )
+        recipe.save()
+        return recipe

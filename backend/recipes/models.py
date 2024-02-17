@@ -87,6 +87,18 @@ class Recipe(models.Model):
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True, db_index=True
     )
+    favorited_by = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='favorite_recipes',
+        verbose_name='Добавили в избранное'
+    )
+    shopped_by = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='shopping_recipes',
+        verbose_name='Добавили в покупки'
+    )
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -121,50 +133,3 @@ class Meal(models.Model):
 
     def __str__(self):
         return f'{self.recipe} {self.ingredient} {self.amount}'
-
-
-class Favorite(models.Model):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='favorite_recipes',
-        verbose_name='Пользователь'
-    )
-    favorite_recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, related_name='users_favorited',
-        verbose_name='Избранный рецепт'
-    )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'favorite_recipe'], name='unique_favorites'
-            ),
-        ]
-        verbose_name = 'Избранное'
-        verbose_name_plural = 'избранные'
-
-    def __str__(self):
-        return f'{self.user} {self.favorite_recipe}'
-
-
-class Shopping(models.Model):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='shopping_cart',
-        verbose_name='Пользователь'
-    )
-    shopping_recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, related_name='users_added_to_cart',
-        verbose_name='Рецепт'
-    )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'shopping_recipe'],
-                name='unique_shopping_recipes'
-            ),
-        ]
-        verbose_name = 'Покупка'
-        verbose_name_plural = 'корзина покупок'
-
-    def __str__(self):
-        return f'{self.user} {self.shopping_recipe}'

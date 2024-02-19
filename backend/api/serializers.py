@@ -34,10 +34,8 @@ class FoodgramUserSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'is_subscribed'
         )
 
-    def get_is_subscribed(self, instance):
-        return self.context['request'].user.subscribing.filter(
-            subscribing=instance
-        ).exists()
+    def get_is_subscribed(self, user):
+        return self.context['request'].user in user.subscribers.all()
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -181,37 +179,3 @@ class RecipeShortReadSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = fields
-
-
-class SubscribingUserSerializer(FoodgramUserSerializer):
-    recipes = RecipeShortReadSerializer(many=True, read_only=True)
-    recipes_count = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = User
-        fields = (
-            'email', 'id', 'username',
-            'first_name', 'last_name', 'is_subscribed',
-            'recipes', 'recipes_count'
-        )
-
-    def get_recipes_count(self, user):
-        return user.recipes.count()
-
-
-class SubscriptionSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    subscribing = SubscribingUserSerializer()
-
-    class Meta:
-        model = Subscription
-        fields = (
-            'user', 'subscribing',
-        )
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Subscription.objects.all(),
-                fields=('user', 'subscribing')
-            )
-        ]
-

@@ -9,6 +9,11 @@ class User(AbstractUser):
     first_name = models.CharField('Имя', max_length=150)
     last_name = models.CharField('Фамилия', max_length=150)
     email = models.EmailField(unique=True, max_length=254)
+    subscribers = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        through='Subscription'
+    )
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -21,27 +26,26 @@ class Subscription(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscribing',
         verbose_name='Пользователь'
     )
-    subscribing = models.ForeignKey(
+    subscriber = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscribers',
+        related_name='subscribing',
         verbose_name='Подписан на'
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'subscribing'], name='unique_subscribers'
+                fields=['user', 'subscriber'], name='unique_subscribers'
             ),
         ]
         verbose_name = 'Подписка'
         verbose_name_plural = 'подписки'
 
     def __str__(self):
-        return f'{self.user=} {self.subscribing=}'
+        return f'{self.user=} {self.subscriber=}'
 
 
 class Tag(models.Model):

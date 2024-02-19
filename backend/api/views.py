@@ -1,16 +1,20 @@
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, DestroyModelMixin
+from rest_framework.viewsets import (
+    ReadOnlyModelViewSet, ModelViewSet, GenericViewSet
+)
 
-from recipes.models import Tag, Ingredient, Recipe
+from recipes.models import Tag, Ingredient, Recipe, User, Subscription
 from .filters import RecipeFilter
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     TagSerializer, IngredientSerializer,
-    RecipeSerializer
+    RecipeSerializer, SubscriptionSerializer
 )
 
 
@@ -50,3 +54,33 @@ class RecipeViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
+
+
+class ListCreateDestroyViewSet(CreateModelMixin,
+                               ListModelMixin,
+                               DestroyModelMixin,
+                               GenericViewSet):
+    pass
+
+
+class SubscriptionViewSet(ListCreateDestroyViewSet):
+    serializer_class = SubscriptionSerializer
+
+    def get_queryset(self):
+        return self.request.user.subscribing.all()
+    
+    # def get_subscribing_user(self):
+    #     return get_object_or_404(User, pk=self.kwargs.get('user_id'))
+
+    # def perform_create(self, serializer):
+    #     serializer.save(
+    #         user=self.request.user,
+    #         subscribing=self.get_subscribing_user()
+    #     )
+
+    # def get_object(self):
+    #     return get_object_or_404(
+    #         Subscription,
+    #         user=self.request.user,
+    #         subscribing=self.get_subscribing_user()
+    #     )

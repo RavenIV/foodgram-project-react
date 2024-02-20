@@ -116,8 +116,30 @@ class RecipeViewSet(ModelViewSet):
                 RecipeShortReadSerializer(recipe).data,
                 status=status.HTTP_201_CREATED
             )
-        elif request.method == 'DELETE':
+        if request.method == 'DELETE':
             if request.user not in recipe.favorited_by.all():
                 raise ValidationError(f'Рецепта {recipe} нет в избранном.')
             recipe.favorited_by.remove(request.user)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(['post', 'delete'],
+            detail=True,
+            permission_classes=[IsAuthenticated])
+    def shopping_cart(self, request, pk=None):
+        recipes = Recipe.objects.filter(pk=pk)
+        if not recipes:
+            raise ValidationError(f'Рецепт {pk} не найден.')
+        recipe = recipes.get(pk=pk)
+        if request.method == 'POST':
+            if request.user in recipe.shopped_by.all():
+                raise ValidationError(f'Рецепт {recipe} уже есть в списке покупок.')
+            recipe.shopped_by.add(request.user)
+            return Response(
+                RecipeShortReadSerializer(recipe).data,
+                status=status.HTTP_201_CREATED
+            )
+        if request.method == 'DELETE':
+            if request.user not in recipe.shopped_by.all():
+                raise ValidationError(f'Рецепта {recipe} нет в списке покупок.')
+            recipe.shopped_by.remove(request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)

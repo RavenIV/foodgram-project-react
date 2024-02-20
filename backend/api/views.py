@@ -24,7 +24,10 @@ from .serializers import (
 class UserViewSet(DjoserUserViewset):
     http_method_names = ['get', 'post', 'delete']
 
-    @action(["get"], detail=False, permission_classes=[CurrentUserOrAdmin])
+    def get_queryset(self):
+        return User.objects.all()
+
+    @action(['get'], detail=False, permission_classes=[CurrentUserOrAdmin])
     def me(self, request, *args, **kwargs):
         self.get_object = self.get_instance
         return self.retrieve(request, *args, **kwargs)

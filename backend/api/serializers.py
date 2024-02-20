@@ -3,16 +3,16 @@ import base64
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
-from djoser.serializers import UserCreateSerializer
+from djoser.serializers import UserCreateSerializer as DjoserSerializer
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
+from rest_framework.validators import UniqueValidator
 
 from recipes.models import Tag, Ingredient, Recipe, Meal, Subscription
 
 User = get_user_model()
 
 
-class FoodgramUserCreateSerializer(UserCreateSerializer):
+class UserCreateSerializer(DjoserSerializer):
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
@@ -24,7 +24,7 @@ class FoodgramUserCreateSerializer(UserCreateSerializer):
         )
 
 
-class FoodgramUserSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -35,6 +35,8 @@ class FoodgramUserSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, user):
+        if isinstance(self.context['request'].user, AnonymousUser):
+            return False
         return self.context['request'].user.subscribing.filter(
             subscribing=user
         ).exists()
@@ -93,7 +95,7 @@ class TagField(serializers.PrimaryKeyRelatedField):
 class RecipeSerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField(read_only=True)
     is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
-    author = FoodgramUserSerializer(read_only=True)
+    author = UserSerializer(read_only=True)
     tags = TagField(many=True, queryset=Tag.objects.all())
     ingredients = MealSerializer(source='meal_set', many=True)
     image = Base64ImageField()
@@ -183,23 +185,6 @@ class RecipeShortReadSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class SubscribingUserSerializer(FoodgramUserSerializer):
-    recipes = RecipeShortReadSerializer(many=True, read_only=True)
-    recipes_count = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = User
-        fields = (
-            'email', 'id', 'username',
-            'first_name', 'last_name', 'is_subscribed',
-            'recipes', 'recipes_count'
-        )
-        read_only_fields = fields
-
-    def get_recipes_count(self, user):
-        return user.recipes.count()
-
-
 class SubscriptionSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
@@ -208,11 +193,23 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         fields = ('user', 'subscribing')
         read_only_fields = fields
 
-    def to_representation(self, instance):
-        subscribing = instance.subscribing
-        return SubscribingUserSerializer(
+    def to_representation(self, subscription):
+        subscribing = subscription.subscribing
+        user_serializer = UserSerializer(
             subscribing, context=self.context
-        ).data
+        )
+        recipes = subscribing.recipes.all()
+        recipes_count = recipes.count()
+        limit = self.context['request'].query_params.get('recipes_limit')
+        recipe_serializer = RecipeShortReadSerializer(
+            recipes[:int(limit) if limit else recipes_count],
+            many=True
+        )
+        return dict(
+            user_serializer.data,
+            recipes=recipe_serializer.data,
+            recipes_count=recipes_count
+        )
 
     def create(self, validated_data):
         subscribing = validated_data['subscribing']

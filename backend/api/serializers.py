@@ -35,7 +35,9 @@ class FoodgramUserSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, user):
-        return self.context['request'].user in user.subscribers.all()
+        return self.context['request'].user.subscribing.filter(
+            subscribing=user
+        ).exists()
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -179,3 +181,51 @@ class RecipeShortReadSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = fields
+
+
+class SubscribingUserSerializer(FoodgramUserSerializer):
+    recipes = RecipeShortReadSerializer(many=True, read_only=True)
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'id', 'username',
+            'first_name', 'last_name', 'is_subscribed',
+            'recipes', 'recipes_count'
+        )
+        read_only_fields = fields
+
+    def get_recipes_count(self, user):
+        return user.recipes.count()
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Subscription
+        fields = ('user', 'subscribing')
+        read_only_fields = fields
+
+    def to_representation(self, instance):
+        subscribing = instance.subscribing
+        return SubscribingUserSerializer(
+            subscribing, context=self.context
+        ).data
+
+    def create(self, validated_data):
+        subscribing = validated_data['subscribing']
+        user = self.context['request'].user
+        if subscribing == user:
+            raise serializers.ValidationError(
+                'Нельзя оформить подписку на самого себя.'
+            )
+        elif user.subscribing.filter(subscribing=subscribing).exists():
+            raise serializers.ValidationError(
+                f'Вы уже подписаны на пользователя {subscribing}'
+            )
+        subscription = Subscription.objects.create(
+            subscribing=subscribing, user=user
+        )
+        return subscription

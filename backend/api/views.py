@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import (
     ReadOnlyModelViewSet, ModelViewSet,
 )
@@ -17,7 +18,8 @@ from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     TagSerializer, IngredientSerializer,
     RecipeSerializer,
-    SubscriptionSerializer
+    SubscriptionSerializer,
+    RecipeShortReadSerializer
 )
 
 
@@ -32,9 +34,7 @@ class UserViewSet(DjoserUserViewset):
         self.get_object = self.get_instance
         return self.retrieve(request, *args, **kwargs)
 
-    @action(
-        ['get'], detail=False, permission_classes=[IsAuthenticated]
-    )
+    @action(['get'], detail=False, permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
         subscriptions = request.user.subscribing.all()
         page = self.paginate_queryset(subscriptions)
@@ -51,9 +51,9 @@ class UserViewSet(DjoserUserViewset):
             context={'request': request}
         ).data)
 
-    @action(
-        ['post', 'delete'], detail=True, permission_classes=[IsAuthenticated]
-    )
+    @action(['post', 'delete'],
+            detail=True,
+            permission_classes=[IsAuthenticated])
     def subscribe(self, request, id=None):
         subscribing = get_object_or_404(User, pk=id)
         if request.method == 'POST':
@@ -99,3 +99,25 @@ class RecipeViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
+
+    @action(['post', 'delete'],
+            detail=True,
+            permission_classes=[IsAuthenticated])
+    def favorite(self, request, pk=None):
+        recipes = Recipe.objects.filter(pk=pk)
+        if not recipes:
+            raise ValidationError(f'Рецепт {pk} не найден.')
+        recipe = recipes.get(pk=pk)
+        if request.method == 'POST':
+            if request.user in recipe.favorited_by.all():
+                raise ValidationError(f'Рецепт {recipe} уже есть в избранном.')
+            recipe.favorited_by.add(request.user)
+            return Response(
+                RecipeShortReadSerializer(recipe).data,
+                status=status.HTTP_201_CREATED
+            )
+        elif request.method == 'DELETE':
+            if request.user not in recipe.favorited_by.all():
+                raise ValidationError(f'Рецепта {recipe} нет в избранном.')
+            recipe.favorited_by.remove(request.user)
+            return Response(status=status.HTTP_204_NO_CONTENT)

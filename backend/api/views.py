@@ -7,6 +7,7 @@ from djoser.views import UserViewSet as DjoserUserViewset
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -66,12 +67,13 @@ class UserViewSet(DjoserUserViewset):
             serializer.save(subscribing=subscribing)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         if request.method == 'DELETE':
-            subscription = get_object_or_404(
-                Subscription,
-                subscribing=subscribing,
-                user=request.user
-            )
-            subscription.delete()
+            try:
+                subscription = Subscription.objects.get(
+                    subscribing=subscribing, user=request.user
+                )
+                subscription.delete()
+            except Subscription.DoesNotExist:
+                raise ValidationError()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -106,11 +108,10 @@ class RecipeViewSet(ModelViewSet):
             detail=True,
             permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
-        recipes = Recipe.objects.filter(pk=pk)
-        if not recipes:
-            raise ValidationError(f'Рецепт {pk} не найден.')
-        recipe = recipes.get(pk=pk)
         if request.method == 'POST':
+            if not Recipe.objects.filter(pk=pk).exists():
+                raise ValidationError(f'Рецепт {pk} не найден.')
+            recipe = self.get_object()
             if request.user in recipe.favorited_by.all():
                 raise ValidationError(f'Рецепт {recipe} уже есть в избранном.')
             recipe.favorited_by.add(request.user)
@@ -119,6 +120,7 @@ class RecipeViewSet(ModelViewSet):
                 status=status.HTTP_201_CREATED
             )
         if request.method == 'DELETE':
+            recipe = self.get_object()
             if request.user not in recipe.favorited_by.all():
                 raise ValidationError(f'Рецепта {recipe} нет в избранном.')
             recipe.favorited_by.remove(request.user)
@@ -128,11 +130,10 @@ class RecipeViewSet(ModelViewSet):
             detail=True,
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
-        recipes = Recipe.objects.filter(pk=pk)
-        if not recipes:
-            raise ValidationError(f'Рецепт {pk} не найден.')
-        recipe = recipes.get(pk=pk)
         if request.method == 'POST':
+            if not Recipe.objects.filter(pk=pk).exists():
+                raise ValidationError(f'Рецепт {pk} не найден.')
+            recipe = self.get_object()
             if request.user in recipe.shopped_by.all():
                 raise ValidationError(f'Рецепт {recipe} уже есть в списке покупок.')
             recipe.shopped_by.add(request.user)
@@ -141,6 +142,7 @@ class RecipeViewSet(ModelViewSet):
                 status=status.HTTP_201_CREATED
             )
         if request.method == 'DELETE':
+            recipe = self.get_object()
             if request.user not in recipe.shopped_by.all():
                 raise ValidationError(f'Рецепта {recipe} нет в списке покупок.')
             recipe.shopped_by.remove(request.user)

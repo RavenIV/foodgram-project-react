@@ -5,7 +5,7 @@ from .views import (
     UserViewSet,
     TagViewSet,
     IngredientViewSet,
-    RecipeViewSet,
+    RecipeViewSet
 )
 
 app_name = 'api'

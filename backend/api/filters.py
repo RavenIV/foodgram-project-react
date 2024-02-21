@@ -22,6 +22,8 @@ class RecipeFilter(filters.FilterSet):
     def filter_favorited(self, queryset, name, value):
         if self.request is None:
             return Recipe.objects.none()
+        if not self.request.user.is_authenticated:
+            return queryset
         if not value:
             return queryset.exclude(favorited_by=self.request.user)
         return queryset.filter(favorited_by=self.request.user)
@@ -29,6 +31,8 @@ class RecipeFilter(filters.FilterSet):
     def filter_shopping(self, queryset, name, value):
         if self.request is None:
             return Recipe.objects.none()
+        if not self.request.user.is_authenticated:
+            return queryset
         if not value:
             return queryset.exclude(shopped_by=self.request.user)
         return queryset.filter(shopped_by=self.request.user)

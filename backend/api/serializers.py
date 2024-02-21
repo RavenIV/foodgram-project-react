@@ -173,15 +173,35 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeShortReadSerializer(serializers.ModelSerializer):
+    favorited_by = serializers.PrimaryKeyRelatedField(
+        write_only=True, queryset=User.objects.all(), required=False
+    )
+    shopped_by = serializers.PrimaryKeyRelatedField(
+        write_only=True, queryset=User.objects.all(), required=False
+    )
 
     class Meta:
         model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
+        fields = (
+            'id', 'name', 'image', 'cooking_time', 'favorited_by', 'shopped_by'
+        )
         read_only_fields = fields
+
+    def update(self, recipe, validated_data):
+        user_favorited = validated_data.get('favorited_by')
+        user_shopped = validated_data.get('shopped_by')
+        if user_favorited:
+            if user_favorited in recipe.favorited_by.all():
+                raise serializers.ValidationError()
+            recipe.favorited_by.add(user_favorited)
+        elif user_shopped:
+            if user_shopped in recipe.shopped_by.all():
+                raise serializers.ValidationError()
+            recipe.shopped_by.add(user_shopped)
+        return recipe
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = Subscription

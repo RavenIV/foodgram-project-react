@@ -7,7 +7,6 @@ from djoser.views import UserViewSet as DjoserUserViewset
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -15,6 +14,10 @@ from rest_framework.viewsets import (
     ReadOnlyModelViewSet, ModelViewSet,
 )
 
+from recipes.constants import (
+    RECIPE_NOT_FOUND, RECIPE_NOT_IN_FAVORITE,
+    RECIPE_NOT_IN_SHOPPING, SUBSCRIPTION_NOT_FOUND
+)
 from recipes.models import Tag, Ingredient, Recipe, User, Subscription
 from .filters import RecipeFilter
 from .permissions import IsAuthorOrReadOnly
@@ -54,8 +57,7 @@ class UserViewSet(DjoserUserViewset):
             context={'request': request}
         ).data)
 
-    @action(['post', 'delete'],
-            detail=True,
+    @action(['post', 'delete'], detail=True,
             permission_classes=[IsAuthenticated])
     def subscribe(self, request, id=None):
         subscribing = get_object_or_404(User, pk=id)
@@ -73,7 +75,9 @@ class UserViewSet(DjoserUserViewset):
                 )
                 subscription.delete()
             except Subscription.DoesNotExist:
-                raise ValidationError()
+                raise ValidationError(
+                    {'errors': SUBSCRIPTION_NOT_FOUND.format(subscribing)}
+                )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -97,58 +101,58 @@ class RecipeViewSet(ModelViewSet):
     )
     http_method_names = ['get', 'post', 'patch', 'delete']
     serializer_class = RecipeSerializer
-    permission_classes = [IsAuthorOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipeFilter
+
+    def get_permissions(self):
+        actions = ['favorite', 'shopping_cart', 'download_shopping_cart']
+        self.permission_classes = [
+            IsAuthenticated if self.action in actions else IsAuthorOrReadOnly
+        ]
+        return super().get_permissions()
 
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
 
-    @action(['post', 'delete'],
-            detail=True,
-            permission_classes=[IsAuthenticated])
+    def add_favorited_or_shopped_by(self, pk, request):
+        try:
+            recipe = Recipe.objects.get(pk=pk)
+        except Recipe.DoesNotExist:
+            raise ValidationError({'errors': RECIPE_NOT_FOUND.format(pk)})
+        serializer = RecipeShortReadSerializer(recipe, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def remove_favorited_or_shopped_by(self, request, object_set, message):
+        if request.user not in object_set.all():
+            raise ValidationError({'errors': message})
+        object_set.remove(request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(['post', 'delete'], detail=True)
     def favorite(self, request, pk=None):
         if request.method == 'POST':
-            if not Recipe.objects.filter(pk=pk).exists():
-                raise ValidationError(f'Рецепт {pk} не найден.')
-            recipe = self.get_object()
-            if request.user in recipe.favorited_by.all():
-                raise ValidationError(f'Рецепт {recipe} уже есть в избранном.')
-            recipe.favorited_by.add(request.user)
-            return Response(
-                RecipeShortReadSerializer(recipe).data,
-                status=status.HTTP_201_CREATED
+            request.data['favorited_by'] = request.user.id
+            return self.add_favorited_or_shopped_by(pk, request)
+        elif request.method == 'DELETE':
+            return self.remove_favorited_or_shopped_by(
+                request, self.get_object().favorited_by,
+                RECIPE_NOT_IN_FAVORITE.format(pk)
             )
-        if request.method == 'DELETE':
-            recipe = self.get_object()
-            if request.user not in recipe.favorited_by.all():
-                raise ValidationError(f'Рецепта {recipe} нет в избранном.')
-            recipe.favorited_by.remove(request.user)
-            return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(['post', 'delete'],
-            detail=True,
-            permission_classes=[IsAuthenticated])
+    @action(['post', 'delete'], detail=True)
     def shopping_cart(self, request, pk=None):
         if request.method == 'POST':
-            if not Recipe.objects.filter(pk=pk).exists():
-                raise ValidationError(f'Рецепт {pk} не найден.')
-            recipe = self.get_object()
-            if request.user in recipe.shopped_by.all():
-                raise ValidationError(f'Рецепт {recipe} уже есть в списке покупок.')
-            recipe.shopped_by.add(request.user)
-            return Response(
-                RecipeShortReadSerializer(recipe).data,
-                status=status.HTTP_201_CREATED
+            request.data['shopped_by'] = request.user.id
+            return self.add_favorited_or_shopped_by(pk, request)
+        elif request.method == 'DELETE':
+            return self.remove_favorited_or_shopped_by(
+                request, self.get_object().shopped_by,
+                RECIPE_NOT_IN_SHOPPING.format(pk)
             )
-        if request.method == 'DELETE':
-            recipe = self.get_object()
-            if request.user not in recipe.shopped_by.all():
-                raise ValidationError(f'Рецепта {recipe} нет в списке покупок.')
-            recipe.shopped_by.remove(request.user)
-            return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(['get'], detail=False, permission_classes=[IsAuthenticated])
+    @action(['get'], detail=False)
     def download_shopping_cart(self, request):
         data = [(
             f'{ingredient.name} ({ingredient.measurement_unit}) - '

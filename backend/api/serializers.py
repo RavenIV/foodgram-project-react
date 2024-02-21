@@ -1,15 +1,11 @@
 import base64
 
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer as DjoserSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from recipes.models import Tag, Ingredient, Recipe, Meal, Subscription
-
-User = get_user_model()
+from recipes.models import Tag, Ingredient, Recipe, Meal, Subscription, User
 
 
 class UserCreateSerializer(DjoserSerializer):
@@ -35,11 +31,11 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, user):
-        if isinstance(self.context['request'].user, AnonymousUser):
-            return False
-        return self.context['request'].user.subscribing.filter(
-            subscribing=user
-        ).exists()
+        current_user = self.context['request'].user
+        return (
+            current_user.is_authenticated
+            and current_user.subscribing.filter(subscribing=user).exists()
+        )
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -108,18 +104,17 @@ class RecipeSerializer(serializers.ModelSerializer):
             'name', 'image', 'text', 'cooking_time'
         )
 
-    def get_user(self):
-        return self.context['request'].user
-
     def get_is_favorited(self, recipe):
-        if isinstance(self.get_user(), AnonymousUser):
-            return False
-        return recipe in self.get_user().favorite_recipes.all()
+        user = self.context['request'].user
+        return user.is_authenticated and user.favorite_recipes.filter(
+            pk=recipe.id
+        ).exists()
 
     def get_is_in_shopping_cart(self, recipe):
-        if isinstance(self.get_user(), AnonymousUser):
-            return False
-        return recipe in self.get_user().shopping_recipes.all()
+        user = self.context['request'].user
+        return user.is_authenticated and user.shopping_recipes.filter(
+            pk=recipe.id
+        ).exists()
 
     def validate(self, data):
         tags = data.get('tags')

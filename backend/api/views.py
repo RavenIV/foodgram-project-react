@@ -1,3 +1,5 @@
+from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.permissions import CurrentUserOrAdmin
@@ -143,3 +145,17 @@ class RecipeViewSet(ModelViewSet):
                 raise ValidationError(f'Рецепта {recipe} нет в списке покупок.')
             recipe.shopped_by.remove(request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(['get'], detail=False, permission_classes=[IsAuthenticated])
+    def download_shopping_cart(self, request):
+        data = [(
+            f'{ingredient.name} ({ingredient.measurement_unit}) - '
+            f'{ingredient.total_amount} \n'
+        ) for ingredient in Ingredient.objects.filter(
+            recipes__shopped_by=request.user
+        ).annotate(total_amount=Sum('meal__amount'))
+        ]
+        return HttpResponse(data, headers={
+            'Content-Type': 'text/plain',
+            'Content-Disposition': 'attachment; filename="shopping_list.txt"'
+        })

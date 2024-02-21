@@ -16,6 +16,9 @@ class User(AbstractUser):
         default_related_name = 'users'
         ordering = ['username']
 
+    def __str__(self):
+        return f'id:{self.pk}, {self.username}'
+
 
 class Subscription(models.Model):
     user = models.ForeignKey(
@@ -54,7 +57,12 @@ class Tag(models.Model):
         verbose_name_plural = 'теги'
 
     def __str__(self):
-        return f'{self.name:.30}'
+        return (
+            f'id:{self.pk}, '
+            f'name:{self.name:.30}, '
+            f'color:{self.color}, '
+            f'slug:{self.slug:.30}'
+        )
 
 
 class Ingredient(models.Model):
@@ -66,7 +74,7 @@ class Ingredient(models.Model):
         verbose_name_plural = 'ингредиенты'
 
     def __str__(self):
-        return f'{self.name:.30}, {self.measurement_unit:.30}'
+        return f'id:{self.pk}, {self.name:.30} ({self.measurement_unit:.30})'
 
 
 class Recipe(models.Model):
@@ -82,7 +90,7 @@ class Recipe(models.Model):
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
-        validators=[MinValueValidator(MIN_COOKING_TIME),]
+        validators=[MinValueValidator(MIN_COOKING_TIME)]
     )
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True, db_index=True
@@ -107,7 +115,7 @@ class Recipe(models.Model):
         ordering = ['-pub_date']
 
     def __str__(self):
-        return f'{self.name:.50}'
+        return f'id:{self.pk}, {self.name:.50}'
 
 
 class Meal(models.Model):
@@ -132,4 +140,4 @@ class Meal(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.recipe} {self.ingredient} {self.amount}'
+        return f'{self.recipe}, {self.ingredient} {self.amount}'

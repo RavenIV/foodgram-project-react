@@ -36,11 +36,19 @@ class IngredientAdmin(admin.ModelAdmin):
     list_filter = ['name']
 
 
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name', 'color', 'slug')
+
+
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'subscribing')
+
+
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(Ingredient, IngredientAdmin)
-admin.site.register(Tag)
-admin.site.register(Subscription)
+admin.site.register(Tag, TagAdmin)
+admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.site_header = 'Foodgram Admin'
 admin.site.site_title = 'Foodgram Admin Portal'
 admin.site.index_title = (

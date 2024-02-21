@@ -33,7 +33,14 @@ class UserViewSet(DjoserUserViewset):
     http_method_names = ['get', 'post', 'delete']
 
     def get_queryset(self):
+        if self.action == 'subscriptions':
+            return self.request.user.subscribing.all()
         return User.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == 'subscriptions':
+            return SubscriptionSerializer
+        return super().get_serializer_class()
 
     @action(['get'], detail=False, permission_classes=[CurrentUserOrAdmin])
     def me(self, request, *args, **kwargs):
@@ -42,20 +49,7 @@ class UserViewSet(DjoserUserViewset):
 
     @action(['get'], detail=False, permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
-        subscriptions = request.user.subscribing.all()
-        page = self.paginate_queryset(subscriptions)
-        if page is not None:
-            serializer = SubscriptionSerializer(
-                page,
-                many=True,
-                context={'request': request}
-            )
-            return self.get_paginated_response(serializer.data)
-        return Response(SubscriptionSerializer(
-            subscriptions,
-            many=True,
-            context={'request': request}
-        ).data)
+        return self.list(request)
 
     @action(['post', 'delete'], detail=True,
             permission_classes=[IsAuthenticated])

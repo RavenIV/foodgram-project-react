@@ -13,7 +13,6 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'пользователи'
-        default_related_name = 'users'
         ordering = ['username']
 
     def __str__(self):
@@ -144,7 +143,7 @@ class Meal(models.Model):
         Ingredient, on_delete=models.PROTECT, verbose_name='Ингредиент',
     )
     amount = models.PositiveSmallIntegerField(
-        'Количество', validators=[MinValueValidator(MIN_INGREDIENT_AMOUNT),]
+        'Количество', validators=[MinValueValidator(MIN_INGREDIENT_AMOUNT)]
     )
 
     class Meta:

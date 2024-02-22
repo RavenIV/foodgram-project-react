@@ -172,7 +172,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
 
-class RecipeShortReadSerializer(serializers.ModelSerializer):
+class RecipeFavoriteShoppingSerializer(serializers.ModelSerializer):
     favorited_by = serializers.PrimaryKeyRelatedField(
         write_only=True, queryset=User.objects.all(), required=False
     )
@@ -202,11 +202,27 @@ class RecipeShortReadSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
+    subscribing = serializers.PrimaryKeyRelatedField(
+        write_only=True, queryset=User.objects.all()
+    )
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = Subscription
         fields = ('user', 'subscribing')
-        read_only_fields = fields
+
+    def validate(self, data):
+        subscribing = data['subscribing']
+        user = self.context['request'].user
+        if subscribing == user:
+            raise serializers.ValidationError(
+                'Нельзя подписаться на самого себя.'
+            )
+        elif user.subscribing.filter(subscribing=subscribing).exists():
+            raise serializers.ValidationError(
+                f'Вы уже подписаны на пользователя {subscribing}'
+            )
+        return data
 
     def to_representation(self, subscription):
         subscribing = subscription.subscribing
@@ -216,7 +232,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         recipes = subscribing.recipes.all()
         recipes_count = recipes.count()
         limit = self.context['request'].query_params.get('recipes_limit')
-        recipe_serializer = RecipeShortReadSerializer(
+        recipe_serializer = RecipeFavoriteShoppingSerializer(
             recipes[:int(limit) if limit else recipes_count],
             many=True
         )
@@ -225,19 +241,3 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             recipes=recipe_serializer.data,
             recipes_count=recipes_count
         )
-
-    def create(self, validated_data):
-        subscribing = validated_data['subscribing']
-        user = self.context['request'].user
-        if subscribing == user:
-            raise serializers.ValidationError(
-                'Нельзя оформить подписку на самого себя.'
-            )
-        elif user.subscribing.filter(subscribing=subscribing).exists():
-            raise serializers.ValidationError(
-                f'Вы уже подписаны на пользователя {subscribing}'
-            )
-        subscription = Subscription.objects.create(
-            subscribing=subscribing, user=user
-        )
-        return subscription

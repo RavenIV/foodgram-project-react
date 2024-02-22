@@ -1,6 +1,5 @@
 from django.db.models import Sum
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.permissions import CurrentUserOrAdmin
 from djoser.views import UserViewSet as DjoserUserViewset
@@ -22,10 +21,11 @@ from recipes.models import Tag, Ingredient, Recipe, User, Subscription
 from .filters import RecipeFilter
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
-    TagSerializer, IngredientSerializer,
+    TagSerializer,
+    IngredientSerializer,
     RecipeSerializer,
     SubscriptionSerializer,
-    RecipeShortReadSerializer
+    RecipeFavoriteShoppingSerializer
 )
 
 
@@ -37,41 +37,43 @@ class UserViewSet(DjoserUserViewset):
             return self.request.user.subscribing.all()
         return User.objects.all()
 
+    def get_permissions(self):
+        if self.action in ['subscriptions', 'subscribe']:
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
+
     def get_serializer_class(self):
-        if self.action == 'subscriptions':
+        if self.action in ['subscriptions', 'subscribe']:
             return SubscriptionSerializer
         return super().get_serializer_class()
+
+    def perform_create(self, serializer, *args, **kwargs):
+        serializer.save()
 
     @action(['get'], detail=False, permission_classes=[CurrentUserOrAdmin])
     def me(self, request, *args, **kwargs):
         self.get_object = self.get_instance
         return self.retrieve(request, *args, **kwargs)
 
-    @action(['get'], detail=False, permission_classes=[IsAuthenticated])
+    @action(['get'], detail=False)
     def subscriptions(self, request):
         return self.list(request)
 
-    @action(['post', 'delete'], detail=True,
-            permission_classes=[IsAuthenticated])
+    @action(['post', 'delete'], detail=True)
     def subscribe(self, request, id=None):
-        subscribing = get_object_or_404(User, pk=id)
+        subscribing = self.get_object()
         if request.method == 'POST':
-            serializer = SubscriptionSerializer(
-                data=request.data, context={'request': request}
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save(subscribing=subscribing)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            request.data['subscribing'] = subscribing.pk
+            return self.create(request)
         if request.method == 'DELETE':
             try:
-                subscription = Subscription.objects.get(
+                Subscription.objects.get(
                     subscribing=subscribing, user=request.user
-                )
-                subscription.delete()
+                ).delete()
             except Subscription.DoesNotExist:
-                raise ValidationError(
-                    {'errors': SUBSCRIPTION_NOT_FOUND.format(subscribing)}
-                )
+                raise ValidationError({
+                    'errors': SUBSCRIPTION_NOT_FOUND.format(subscribing)
+                })
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -113,7 +115,9 @@ class RecipeViewSet(ModelViewSet):
             recipe = Recipe.objects.get(pk=pk)
         except Recipe.DoesNotExist:
             raise ValidationError({'errors': RECIPE_NOT_FOUND.format(pk)})
-        serializer = RecipeShortReadSerializer(recipe, data=request.data)
+        serializer = RecipeFavoriteShoppingSerializer(
+            recipe, data=request.data
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)

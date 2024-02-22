@@ -6,12 +6,8 @@ from djoser.serializers import UserCreateSerializer as DjoserSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from recipes.constants import (
-    ADD_TAGS, ADD_INGREDIENTS, DUPLICATE_TAGS, DUPLICATE_INGREDIENTS,
-    RECIPE_IN_FAVORITE, RECIPE_IN_SHOPPING, SUBSCRIBE_SELF,
-    EXIST_IN_SUBSCRIBING, MIN_COOKING_TIME, MIN_INGREDIENT_AMOUNT
-)
-from recipes.models import Tag, Ingredient, Recipe, Meal, Subscription, User
+from recipes import constants
+from recipes.models import Ingredient, Meal, Recipe, Subscription, Tag, User
 
 
 class UserCreateSerializer(DjoserSerializer):
@@ -70,7 +66,7 @@ class MealSerializer(serializers.ModelSerializer):
         source='ingredient.measurement_unit', read_only=True
     )
     amount = serializers.IntegerField(
-        validators=[MinValueValidator(MIN_INGREDIENT_AMOUNT)]
+        validators=[MinValueValidator(constants.MIN_INGREDIENT_AMOUNT)]
     )
 
     class Meta:
@@ -105,7 +101,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = MealSerializer(source='meal_set', many=True)
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
-        validators=[MinValueValidator(MIN_COOKING_TIME)]
+        validators=[MinValueValidator(constants.MIN_COOKING_TIME)]
     )
 
     class Meta:
@@ -132,15 +128,19 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = data.get('tags')
         meal = data.get('meal_set')
         if not tags:
-            raise serializers.ValidationError({'tags': ADD_TAGS})
+            raise serializers.ValidationError({'tags': constants.ADD_TAGS})
         if not meal:
-            raise serializers.ValidationError({'ingredients': ADD_INGREDIENTS})
+            raise serializers.ValidationError({
+                'ingredients': constants.ADD_INGREDIENTS
+            })
         ingredients = [ingredient['ingredient'] for ingredient in meal]
         if len(tags) != len(set(tags)):
-            raise serializers.ValidationError({'tags': DUPLICATE_TAGS})
+            raise serializers.ValidationError({
+                'tags': constants.DUPLICATE_TAGS
+            })
         if len(ingredients) != len(set(ingredients)):
             raise serializers.ValidationError({
-                'ingredients': DUPLICATE_INGREDIENTS
+                'ingredients': constants.DUPLICATE_INGREDIENTS
             })
         return data
 
@@ -200,11 +200,11 @@ class RecipeFavoriteShoppingSerializer(serializers.ModelSerializer):
         user_shopped = validated_data.get('shopped_by')
         if user_favorited:
             if user_favorited in recipe.favorited_by.all():
-                raise serializers.ValidationError(RECIPE_IN_FAVORITE)
+                raise serializers.ValidationError(constants.RECIPE_IN_FAVORITE)
             recipe.favorited_by.add(user_favorited)
         elif user_shopped:
             if user_shopped in recipe.shopped_by.all():
-                raise serializers.ValidationError(RECIPE_IN_SHOPPING)
+                raise serializers.ValidationError(constants.RECIPE_IN_SHOPPING)
             recipe.shopped_by.add(user_shopped)
         return recipe
 
@@ -223,9 +223,9 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         subscribing = data['subscribing']
         user = self.context['request'].user
         if subscribing == user:
-            raise serializers.ValidationError(SUBSCRIBE_SELF)
+            raise serializers.ValidationError(constants.SUBSCRIBE_SELF)
         elif user.subscribing.filter(subscribing=subscribing).exists():
-            raise serializers.ValidationError(EXIST_IN_SUBSCRIBING)
+            raise serializers.ValidationError(constants.EXIST_IN_SUBSCRIBING)
         return data
 
     def to_representation(self, subscription):

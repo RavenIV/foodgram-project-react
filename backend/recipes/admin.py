@@ -1,10 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count
-from .models import (
-    User, Recipe, Tag,
-    Ingredient, Subscription, Meal
-)
+
+from .models import Ingredient, Meal, Recipe, Subscription, Tag, User
 
 
 class IngredientInline(admin.TabularInline):

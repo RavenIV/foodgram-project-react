@@ -17,7 +17,13 @@ class User(AbstractUser):
         ordering = ['username']
 
     def __str__(self):
-        return f'id:{self.pk}, {self.username}'
+        return (
+            f'{self.pk=}, '
+            f'{self.username=}, '
+            f'{self.email=:.30}, '
+            f'{self.first_name=:.30}, '
+            f'{self.last_name=:.30}'
+        )
 
 
 class Subscription(models.Model):
@@ -58,10 +64,10 @@ class Tag(models.Model):
 
     def __str__(self):
         return (
-            f'id:{self.pk}, '
-            f'name:{self.name:.30}, '
-            f'color:{self.color}, '
-            f'slug:{self.slug:.30}'
+            f'{self.pk=}, '
+            f'{self.name=:.30}, '
+            f'{self.color=}, '
+            f'{self.slug=:.30}'
         )
 
 
@@ -74,7 +80,7 @@ class Ingredient(models.Model):
         verbose_name_plural = 'ингредиенты'
 
     def __str__(self):
-        return f'id:{self.pk}, {self.name:.30} ({self.measurement_unit:.30})'
+        return f'{self.pk=}, {self.name:.30} ({self.measurement_unit:.30})'
 
 
 class Recipe(models.Model):
@@ -115,7 +121,19 @@ class Recipe(models.Model):
         ordering = ['-pub_date']
 
     def __str__(self):
-        return f'id:{self.pk}, {self.name:.50}'
+        return (
+            f'{self.pk=}, '
+            f'{self.name=:.50}, '
+            f'{self.author=}, '
+            f'{self.text=:.30}, '
+            f'{self.image=}, '
+            f'{self.cooking_time=}, '
+            f'{self.ingredients=}, '
+            f'{self.tags=}, '
+            f'{self.pub_date=}, '
+            f'{self.favorited_by=}, '
+            f'{self.shopped_by=}'
+        )
 
 
 class Meal(models.Model):
@@ -140,4 +158,4 @@ class Meal(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.recipe}, {self.ingredient} {self.amount}'
+        return f'{self.recipe=}, {self.ingredient=} {self.amount=}'

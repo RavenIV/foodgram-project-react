@@ -10,6 +10,9 @@ class User(AbstractUser):
     last_name = models.CharField('Фамилия', max_length=150)
     email = models.EmailField(unique=True, max_length=254)
 
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    USERNAME_FIELD = 'email'
+
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'пользователи'

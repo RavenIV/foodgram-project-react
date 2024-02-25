@@ -46,8 +46,8 @@ class UserViewSet(DjoserUserViewset):
             return SubscriptionSerializer
         return super().get_serializer_class()
 
-    def perform_create(self, serializer, *args, **kwargs):
-        serializer.save()
+    # def perform_create(self, serializer, *args, **kwargs):
+    #     serializer.save()
 
     @action(['get'], detail=False, permission_classes=[CurrentUserOrAdmin])
     def me(self, request, *args, **kwargs):

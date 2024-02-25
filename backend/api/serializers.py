@@ -1,25 +1,8 @@
-import base64
-
-from django.core.files.base import ContentFile
-from django.core.validators import MinValueValidator
-from djoser.serializers import UserCreateSerializer as DjoserSerializer
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 
 from recipes import constants
 from recipes.models import Ingredient, Meal, Recipe, Subscription, Tag, User
-
-
-class UserCreateSerializer(DjoserSerializer):
-    email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=User.objects.all())]
-    )
-
-    class Meta:
-        model = User
-        fields = (
-            'id', 'email', 'username', 'first_name', 'last_name', 'password'
-        )
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -76,17 +59,6 @@ class MealSerializer(serializers.ModelSerializer):
         )
 
 
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, image = data.split(';base64,')
-            extension = format.split('/')[-1]
-            data = ContentFile(
-                base64.b64decode(image), name=f'temp.{extension}'
-            )
-        return super().to_internal_value(data)
-
-
 class TagField(serializers.PrimaryKeyRelatedField):
 
     def to_representation(self, tag):
@@ -101,7 +73,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = MealSerializer(source='meal_set', many=True)
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
-        validators=[MinValueValidator(constants.MIN_COOKING_TIME)]
+        min_value=constants.MIN_COOKING_TIME
     )
 
     class Meta:
@@ -216,18 +188,15 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     def to_representation(self, subscription):
         subscribing = subscription.subscribing
-        user_serializer = UserSerializer(
-            subscribing, context=self.context
-        )
-        recipes = subscribing.recipes.all()
-        recipes_count = recipes.count()
-        limit = self.context['request'].query_params.get('recipes_limit')
+        user_serializer = UserSerializer(subscribing, context=self.context)
+        limit = int(self.context['request'].query_params.get(
+            'recipes_limit', 10**10
+        ))
         recipe_serializer = RecipeFavoriteShoppingSerializer(
-            recipes[:int(limit) if limit else recipes_count],
-            many=True
+            subscribing.recipes.all()[:limit], many=True
         )
         return dict(
-            user_serializer.data,
+            **user_serializer.data,
             recipes=recipe_serializer.data,
-            recipes_count=recipes_count
+            recipes_count=subscribing.recipes.count()
         )

@@ -19,7 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
         current_user = self.context['request'].user
         return (
             current_user.is_authenticated
-            and current_user.subscribing.filter(subscribing=user).exists()
+            and current_user.subscribed_to.filter(subscribing=user).exists()
         )
 
 

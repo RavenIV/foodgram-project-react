@@ -33,7 +33,7 @@ class UserViewSet(DjoserUserViewset):
 
     def get_queryset(self):
         if self.action == 'subscriptions':
-            return self.request.user.subscribing.all()
+            return self.request.user.subscribed_to.all()
         return User.objects.all()
 
     def get_permissions(self):

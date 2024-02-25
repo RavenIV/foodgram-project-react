@@ -2,13 +2,20 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from .constants import MIN_COOKING_TIME, MIN_INGREDIENT_AMOUNT
+from . import constants
+from .validators import validate_username
 
 
 class User(AbstractUser):
-    first_name = models.CharField('Имя', max_length=150)
-    last_name = models.CharField('Фамилия', max_length=150)
-    email = models.EmailField(unique=True, max_length=254)
+    username = models.CharField(
+        'Ник',
+        max_length=constants.MAX_USERNAME,
+        unique=True,
+        validators=[validate_username]
+    )
+    first_name = models.CharField('Имя', max_length=constants.MAX_FIRST_NAME)
+    last_name = models.CharField('Фамилия', max_length=constants.MAX_LAST_NAME)
+    email = models.EmailField(unique=True, max_length=constants.MAX_EMAIL)
 
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
     USERNAME_FIELD = 'email'
@@ -38,7 +45,7 @@ class Subscription(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Пользователь',
-        related_name='subscribing'
+        related_name='subscribed_to'
     )
     subscribing = models.ForeignKey(
         User,
@@ -61,9 +68,15 @@ class Subscription(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField('Название', unique=True, max_length=200)
-    color = models.CharField('Цвет', unique=True, max_length=7)
-    slug = models.SlugField('Слаг', unique=True, max_length=200)
+    name = models.CharField(
+        'Название', unique=True, max_length=constants.MAX_TAG_NAME
+    )
+    color = models.CharField(
+        'Цвет', unique=True, max_length=constants.MAX_TAG_COLOR
+    )
+    slug = models.SlugField(
+        'Слаг', unique=True, max_length=constants.MAX_TAG_SLUG
+    )
 
     class Meta:
         verbose_name = 'Тег'
@@ -79,12 +92,16 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    name = models.CharField('Название', max_length=200)
-    measurement_unit = models.CharField('Единицы измерения', max_length=200)
+    name = models.CharField(
+        'Название', max_length=constants.MAX_INGREDIENT_NAME
+    )
+    measurement_unit = models.CharField(
+        'Единица измерения', max_length=constants.MAX_INGREDIENT_MEASURE
+    )
 
     class Meta:
-        verbose_name = 'Ингредиент'
-        verbose_name_plural = 'ингредиенты'
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'продукты'
 
     def __str__(self):
         return f'{self.pk=}, {self.name:.30} ({self.measurement_unit:.30})'
@@ -94,7 +111,7 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name='Автор'
     )
-    name = models.CharField('Название', max_length=200)
+    name = models.CharField('Название', max_length=constants.MAX_RECIPE_NAME)
     image = models.ImageField('Картинка', upload_to='recipes/images/')
     text = models.TextField('Описание')
     ingredients = models.ManyToManyField(
@@ -103,7 +120,7 @@ class Recipe(models.Model):
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
-        validators=[MinValueValidator(MIN_COOKING_TIME)]
+        validators=[MinValueValidator(constants.MIN_COOKING_TIME)]
     )
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True, db_index=True
@@ -151,7 +168,8 @@ class Meal(models.Model):
         Ingredient, on_delete=models.PROTECT, verbose_name='Ингредиент',
     )
     amount = models.PositiveSmallIntegerField(
-        'Количество', validators=[MinValueValidator(MIN_INGREDIENT_AMOUNT)]
+        'Количество',
+        validators=[MinValueValidator(constants.MIN_INGREDIENT_AMOUNT)]
     )
 
     class Meta:

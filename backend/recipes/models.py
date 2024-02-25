@@ -3,7 +3,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 from . import constants
-from .validators import validate_username
+from .validators import validate_username, validate_color
 
 
 class User(AbstractUser):
@@ -72,7 +72,10 @@ class Tag(models.Model):
         'Название', unique=True, max_length=constants.MAX_TAG_NAME
     )
     color = models.CharField(
-        'Цвет', unique=True, max_length=constants.MAX_TAG_COLOR
+        'Цвет',
+        unique=True,
+        max_length=constants.MAX_TAG_COLOR,
+        validators=[validate_color]
     )
     slug = models.SlugField(
         'Слаг', unique=True, max_length=constants.MAX_TAG_SLUG
@@ -100,8 +103,8 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Продукт'
-        verbose_name_plural = 'продукты'
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'ингредиенты'
 
     def __str__(self):
         return f'{self.pk=}, {self.name:.30} ({self.measurement_unit:.30})'

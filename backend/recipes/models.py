@@ -23,6 +23,11 @@ class User(AbstractUser):
             f'{self.first_name=:.30}, '
             f'{self.last_name=:.30}'
         )
+    
+    # def shopping_cart(self):
+    #     return Ingredient.objects.filter(
+    #         recipes__shopped_by=self
+    #     ).annotate(total_amount=models.Sum('meal__amount'))
 
 
 class Subscription(models.Model):

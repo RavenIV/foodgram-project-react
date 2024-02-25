@@ -66,7 +66,7 @@ class MealSerializer(serializers.ModelSerializer):
         source='ingredient.measurement_unit', read_only=True
     )
     amount = serializers.IntegerField(
-        validators=[MinValueValidator(constants.MIN_INGREDIENT_AMOUNT)]
+        min_value=constants.MIN_INGREDIENT_AMOUNT
     )
 
     class Meta:
@@ -89,8 +89,8 @@ class Base64ImageField(serializers.ImageField):
 
 class TagField(serializers.PrimaryKeyRelatedField):
 
-    def to_representation(self, value):
-        return TagSerializer(value).data
+    def to_representation(self, tag):
+        return TagSerializer(tag).data
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -145,39 +145,25 @@ class RecipeSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        ingredients_data = validated_data.pop('meal_set')
-        tags_data = validated_data.pop('tags')
+        ingredients = validated_data.pop('meal_set')
+        tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
-        for tag in tags_data:
-            recipe.tags.add(tag)
-        for ingredient in ingredients_data:
-            Meal.objects.create(
-                recipe=recipe,
-                ingredient=ingredient['ingredient'],
-                amount=ingredient['amount']
-            )
+        recipe.tags.set(tags)
+        Meal.objects.bulk_create([
+            Meal(recipe=recipe, **ingredient) for ingredient in ingredients
+        ])
         return recipe
 
     def update(self, recipe, validated_data):
-        recipe.name = validated_data.get('name', recipe.name)
-        recipe.image = validated_data.get('image', recipe.image)
-        recipe.text = validated_data.get('text', recipe.text)
-        recipe.cooking_time = validated_data.get(
-            'cooking_time', recipe.cooking_time
-        )
         if 'tags' in validated_data:
-            tags_data = validated_data.pop('tags')
-            recipe.tags.set([tag for tag in tags_data])
+            recipe.tags.set(validated_data.pop('tags'))
         if 'meal_set' in validated_data:
-            ingredients_data = validated_data.pop('meal_set')
             recipe.ingredients.clear()
-            for data in ingredients_data:
-                recipe.ingredients.add(
-                    data['ingredient'],
-                    through_defaults={'amount': data['amount']}
-                )
-        recipe.save()
-        return recipe
+            Meal.objects.bulk_create([
+                Meal(recipe=recipe, **ingredient)
+                for ingredient in validated_data.pop('meal_set')
+            ])
+        return super().update(recipe, validated_data)
 
 
 class RecipeFavoriteShoppingSerializer(serializers.ModelSerializer):

@@ -155,7 +155,7 @@ class RecipeViewSet(ModelViewSet):
             f'{ingredient.total_amount} \n'
         ) for ingredient in Ingredient.objects.filter(
             recipes__shopped_by=request.user
-        ).annotate(total_amount=Sum('meal__amount'))
+        ).annotate(total_amount=Sum('recipe_products__amount'))
         ]
         return HttpResponse(data, headers={
             'Content-Type': 'text/plain',

@@ -10,6 +10,7 @@ MAX_TAG_SLUG = 200
 MAX_RECIPE_NAME = 200
 MAX_INGREDIENT_NAME = 200
 MAX_INGREDIENT_MEASURE = 200
+USERNAME_REGEX = r'^[\w.@+-]+\Z'
 RECIPE_NOT_FOUND = 'Рецепт {} не найден.'
 RECIPE_NOT_IN_FAVORITE = 'Рецепт {} не добавлен в избранное.'
 RECIPE_IN_FAVORITE = 'Рецепт {} уже есть в избранном.'

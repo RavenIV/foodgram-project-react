@@ -2,7 +2,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from recipes import constants
-from recipes.models import Ingredient, Meal, Recipe, Subscription, Tag, User
+from recipes.models import Ingredient, Recipe, RecipeProduct, Subscription, Tag, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -53,7 +53,7 @@ class MealSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Meal
+        model = RecipeProduct
         fields = (
             'id', 'name', 'measurement_unit', 'amount'
         )
@@ -121,8 +121,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
-        Meal.objects.bulk_create([
-            Meal(recipe=recipe, **ingredient) for ingredient in ingredients
+        RecipeProduct.objects.bulk_create([
+            RecipeProduct(recipe=recipe, **ingredient) for ingredient in ingredients
         ])
         return recipe
 
@@ -131,8 +131,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             recipe.tags.set(validated_data.pop('tags'))
         if 'recipe_products' in validated_data:
             recipe.ingredients.clear()
-            Meal.objects.bulk_create([
-                Meal(recipe=recipe, **ingredient)
+            RecipeProduct.objects.bulk_create([
+                RecipeProduct(recipe=recipe, **ingredient)
                 for ingredient in validated_data.pop('recipe_products')
             ])
         return super().update(recipe, validated_data)

@@ -5,12 +5,12 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .filters import SubscriptionListFilter
-from .models import Ingredient, Meal, Recipe, Subscription, Tag, User
+from .filters import CookingTimeListFilter, SubscriptionListFilter
+from .models import Ingredient, RecipeProduct, Recipe, Subscription, Tag, User
 
 
 class IngredientInline(admin.TabularInline):
-    model = Meal
+    model = RecipeProduct
     extra = 0
 
 
@@ -60,9 +60,10 @@ class RecipeAdmin(admin.ModelAdmin):
         'favorited_count',
         'cooking_time',
         'image_tag',
-        'tags_display'
+        'tags_display',
+        'ingredients_display'
     )
-    list_filter = ('author__username', 'tags__name')
+    list_filter = ('author__username', 'tags__name', CookingTimeListFilter)
     search_fields = ['tags__name', 'name', 'author__username']
 
     def get_queryset(self, request):
@@ -76,25 +77,33 @@ class RecipeAdmin(admin.ModelAdmin):
         return recipe.favorited_count
 
     @admin.display(description='Автор')
+    @mark_safe
     def author_link(self, recipe):
-        url = reverse('admin:recipes_user_change', args=[recipe.author.id])
-        return mark_safe(f'<a href="{url}">{recipe.author.username}</a>')
+        return '<a href="{}">{}</a>'.format(
+            reverse('admin:recipes_user_change', args=[recipe.author.id]),
+            recipe.author.username
+        )
 
     @admin.display(description='Картинка')
+    @mark_safe
     def image_tag(self, recipe):
-        return mark_safe(
-            f'<img src="{recipe.image.url}" width="100px" height="100px" />'
+        return '<img src="{}" width="100px" height="100px" />'.format(
+            recipe.image.url
         )
 
     @admin.display(description='Теги')
+    @mark_safe
     def tags_display(self, recipe):
-        return mark_safe(
-            '<br>'.join([tag.name for tag in recipe.tags.all()])
-        )
+        return '<br>'.join([tag.name for tag in recipe.tags.all()])
 
     @admin.display(description='Продукты')
+    @mark_safe
     def ingredients_display(self, recipe):
-        ...
+        return '<br>'.join([
+            f'{product.ingredient.name} - '
+            f'{product.amount} {product.ingredient.measurement_unit}'
+            for product in recipe.recipe_products.all()
+        ])
 
 
 @admin.register(Ingredient)
@@ -105,7 +114,29 @@ class IngredientAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('name', 'color', 'slug')
+    list_display = (
+        'name',
+        'color_display',
+        'slug',
+        'recipes_count'
+    )
+
+    def get_queryset(self, request):
+        tags = super().get_queryset(request)
+        return tags.annotate(
+            recipes_count=Count('recipes', distinct=True),
+        )
+
+    @admin.display(description='Количество рецептов')
+    def recipes_count(self, tag):
+        return tag.recipes_count
+
+    @admin.display(description='Цвет')
+    @mark_safe
+    def color_display(self, tag):
+        return '<div style="background-color:{color}">{color}</div>'.format(
+            color=tag.color
+        )
 
 
 @admin.register(Subscription)

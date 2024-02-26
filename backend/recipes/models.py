@@ -3,15 +3,16 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 from . import constants
-from .validators import validate_username, validate_color
+from .validators import UsernameValidator, ColorValidator
 
 
 class User(AbstractUser):
+
     username = models.CharField(
         'Ник',
         max_length=constants.MAX_USERNAME,
         unique=True,
-        validators=[validate_username]
+        validators=[UsernameValidator()]
     )
     first_name = models.CharField('Имя', max_length=constants.MAX_FIRST_NAME)
     last_name = models.CharField('Фамилия', max_length=constants.MAX_LAST_NAME)
@@ -33,7 +34,7 @@ class User(AbstractUser):
             f'{self.first_name=:.30}, '
             f'{self.last_name=:.30}'
         )
-    
+
     # def shopping_cart(self):
     #     return Ingredient.objects.filter(
     #         recipes__shopped_by=self
@@ -75,7 +76,7 @@ class Tag(models.Model):
         'Цвет',
         unique=True,
         max_length=constants.MAX_TAG_COLOR,
-        validators=[validate_color]
+        validators=[ColorValidator()]
     )
     slug = models.SlugField(
         'Слаг', unique=True, max_length=constants.MAX_TAG_SLUG
@@ -103,8 +104,8 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Ингредиент'
-        verbose_name_plural = 'ингредиенты'
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
 
     def __str__(self):
         return f'{self.pk=}, {self.name:.30} ({self.measurement_unit:.30})'
@@ -118,7 +119,7 @@ class Recipe(models.Model):
     image = models.ImageField('Картинка', upload_to='recipes/images/')
     text = models.TextField('Описание')
     ingredients = models.ManyToManyField(
-        Ingredient, through='Meal', verbose_name='Ингредиенты'
+        Ingredient, through='RecipeProduct', verbose_name='Продукты'
     )
     tags = models.ManyToManyField(Tag, verbose_name='Теги')
     cooking_time = models.PositiveSmallIntegerField(
@@ -151,7 +152,7 @@ class Recipe(models.Model):
         return (
             f'{self.pk=}, '
             f'{self.name=:.50}, '
-            f'{self.author=}, '
+            f'{self.author.username=}, '
             f'{self.text=:.30}, '
             f'{self.image=}, '
             f'{self.cooking_time=}, '
@@ -163,21 +164,21 @@ class Recipe(models.Model):
         )
 
 
-class Meal(models.Model):
+class RecipeProduct(models.Model):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, verbose_name='Рецепт',
     )
     ingredient = models.ForeignKey(
-        Ingredient, on_delete=models.PROTECT, verbose_name='Ингредиент',
+        Ingredient, on_delete=models.PROTECT, verbose_name='Продукт',
     )
     amount = models.PositiveSmallIntegerField(
-        'Количество',
+        'Мера',
         validators=[MinValueValidator(constants.MIN_INGREDIENT_AMOUNT)]
     )
 
     class Meta:
-        verbose_name = 'Ингредиент рецепта'
-        verbose_name_plural = 'ингредиенты рецепта'
+        verbose_name = 'Продукт для рецепта'
+        verbose_name_plural = 'продукты для рецепта'
         default_related_name = 'recipe_products'
         constraints = [
             models.UniqueConstraint(

@@ -178,6 +178,7 @@ class Meal(models.Model):
     class Meta:
         verbose_name = 'Ингредиент рецепта'
         verbose_name_plural = 'ингредиенты рецепта'
+        default_related_name = 'recipe_products'
         constraints = [
             models.UniqueConstraint(
                 fields=['recipe', 'ingredient'],

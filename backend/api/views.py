@@ -11,12 +11,6 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
-from recipes.constants import (
-    RECIPE_NOT_FOUND, RECIPE_NOT_IN_FAVORITE,
-    RECIPE_NOT_IN_SHOPPING, SUBSCRIPTION_NOT_FOUND
-)
-from recipes.models import Ingredient, Recipe, Subscription, Tag, User
-
 from .filters import RecipeFilter
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
@@ -26,6 +20,11 @@ from .serializers import (
     SubscriptionSerializer,
     TagSerializer
 )
+from recipes.constants import (
+    RECIPE_NOT_FOUND, RECIPE_NOT_IN_FAVORITE,
+    RECIPE_NOT_IN_SHOPPING, SUBSCRIPTION_NOT_FOUND
+)
+from recipes.models import Ingredient, Recipe, Subscription, Tag, User
 
 
 class UserViewSet(DjoserUserViewset):

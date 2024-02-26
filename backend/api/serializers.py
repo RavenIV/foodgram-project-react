@@ -70,7 +70,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
     author = UserSerializer(read_only=True)
     tags = TagField(many=True, queryset=Tag.objects.all())
-    ingredients = MealSerializer(source='meal_set', many=True)
+    ingredients = MealSerializer(source='recipe_products', many=True)
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
         min_value=constants.MIN_COOKING_TIME
@@ -98,7 +98,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         tags = data.get('tags')
-        meal = data.get('meal_set')
+        meal = data.get('recipe_products')
         if not tags:
             raise serializers.ValidationError({'tags': constants.ADD_TAGS})
         if not meal:
@@ -117,7 +117,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        ingredients = validated_data.pop('meal_set')
+        ingredients = validated_data.pop('recipe_products')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
@@ -129,11 +129,11 @@ class RecipeSerializer(serializers.ModelSerializer):
     def update(self, recipe, validated_data):
         if 'tags' in validated_data:
             recipe.tags.set(validated_data.pop('tags'))
-        if 'meal_set' in validated_data:
+        if 'recipe_products' in validated_data:
             recipe.ingredients.clear()
             Meal.objects.bulk_create([
                 Meal(recipe=recipe, **ingredient)
-                for ingredient in validated_data.pop('meal_set')
+                for ingredient in validated_data.pop('recipe_products')
             ])
         return super().update(recipe, validated_data)
 
@@ -182,7 +182,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         if subscribing == user:
             raise serializers.ValidationError(constants.SUBSCRIBE_SELF)
-        elif user.subscribing.filter(subscribing=subscribing).exists():
+        elif user.subscribed_to.filter(subscribing=subscribing).exists():
             raise serializers.ValidationError(constants.EXIST_IN_SUBSCRIBING)
         return data
 

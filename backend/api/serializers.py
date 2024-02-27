@@ -1,8 +1,14 @@
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from recipes import constants
-from recipes.models import Ingredient, Recipe, RecipeProduct, Subscription, Tag, User
+from recipes.constants import MIN_COOKING_TIME, MIN_INGREDIENT_AMOUNT
+from recipes.models import (
+    Ingredient, Recipe, RecipeProduct,
+    Subscription, Tag, User
+)
+
+SUBSCRIBE_SELF = 'Нельзя подписаться на самого себя.'
+EXIST_IN_SUBSCRIBING = 'Вы уже подписаны на пользователя {}'
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -48,9 +54,7 @@ class RecipeProductSerializer(serializers.ModelSerializer):
     measurement_unit = serializers.CharField(
         source='ingredient.measurement_unit', read_only=True
     )
-    amount = serializers.IntegerField(
-        min_value=constants.MIN_INGREDIENT_AMOUNT
-    )
+    amount = serializers.IntegerField(min_value=MIN_INGREDIENT_AMOUNT)
 
     class Meta:
         model = RecipeProduct
@@ -72,9 +76,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     tags = TagField(many=True, queryset=Tag.objects.all())
     ingredients = RecipeProductSerializer(source='recipe_products', many=True)
     image = Base64ImageField()
-    cooking_time = serializers.IntegerField(
-        min_value=constants.MIN_COOKING_TIME
-    )
+    cooking_time = serializers.IntegerField(min_value=MIN_COOKING_TIME)
 
     class Meta:
         model = Recipe
@@ -159,9 +161,11 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         subscribing = data['subscribing']
         user = self.context['request'].user
         if subscribing == user:
-            raise serializers.ValidationError(constants.SUBSCRIBE_SELF)
+            raise serializers.ValidationError(SUBSCRIBE_SELF)
         elif user.subscribed_to.filter(subscribing=subscribing).exists():
-            raise serializers.ValidationError(constants.EXIST_IN_SUBSCRIBING)
+            raise serializers.ValidationError(
+                EXIST_IN_SUBSCRIBING.format(subscribing.username)
+            )
         return data
 
     def to_representation(self, subscription):

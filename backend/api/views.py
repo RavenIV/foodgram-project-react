@@ -1,7 +1,4 @@
-from django.db.models import Sum
 from django.http import FileResponse
-# from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewset
 from rest_framework import status
@@ -131,12 +128,12 @@ class RecipeViewSet(ModelViewSet):
         if request.method == 'POST':
             return self.add_favorited_or_shopped_by(
                 request, recipe, recipe.favorited_by,
-                RECIPE_IN_FAVORITE.format(pk)
+                RECIPE_IN_FAVORITE.format(recipe.name)
             )
         elif request.method == 'DELETE':
             return self.remove_favorited_or_shopped_by(
                 request, recipe.favorited_by,
-                RECIPE_NOT_IN_FAVORITE.format(pk)
+                RECIPE_NOT_IN_FAVORITE.format(recipe.name)
             )
 
     @action(['post', 'delete'], detail=True)
@@ -145,12 +142,12 @@ class RecipeViewSet(ModelViewSet):
         if request.method == 'POST':
             return self.add_favorited_or_shopped_by(
                 request, recipe, recipe.shopped_by,
-                RECIPE_IN_SHOPPING.format(pk)
+                RECIPE_IN_SHOPPING.format(recipe.name)
             )
         elif request.method == 'DELETE':
             return self.remove_favorited_or_shopped_by(
                 request, recipe.shopped_by,
-                RECIPE_NOT_IN_SHOPPING.format(pk)
+                RECIPE_NOT_IN_SHOPPING.format(recipe.name)
             )
 
     @action(['get'], detail=False)

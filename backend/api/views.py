@@ -22,7 +22,7 @@ from .serializers import (
 from .utils import create_shopping_list
 
 RECIPE_NOT_IN_FAVORITE = 'Рецепт {} не добавлен в избранное.'
-RECIPE_IN_FAVORITE = 'Рецепт уже есть в избранном.'
+RECIPE_IN_FAVORITE = 'Рецепт {} уже есть в избранном.'
 RECIPE_NOT_IN_SHOPPING = 'Рецепт {} не добавлен в список покупок.'
 RECIPE_IN_SHOPPING = 'Рецепт {} уже есть в списке покупок.'
 SUBSCRIPTION_NOT_FOUND = 'Вы не подписаны на пользователя {}'
@@ -84,7 +84,7 @@ class IngredientViewSet(ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     pagination_class = None
     filter_backends = [SearchFilter]
-    search_fields = ['name']
+    search_fields = ['^name']
 
 
 class RecipeViewSet(ModelViewSet):

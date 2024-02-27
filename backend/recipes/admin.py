@@ -38,15 +38,15 @@ class UserAdmin(DjangoUserAdmin):
             subscribers_count=Count('subscribers', distinct=True),
         )
 
-    @admin.display(description='Рецепты')
+    @admin.display(description='Рецепты', ordering='recipes_count')
     def recipes_count(self, user):
         return user.recipes_count
 
-    @admin.display(description='Подписки')
+    @admin.display(description='Подписки', ordering='subscribed_to_count')
     def subscribed_to_count(self, user):
         return user.subscribed_to_count
 
-    @admin.display(description='Подписчики')
+    @admin.display(description='Подписчики', ordering='subscribers_count')
     def subscribers_count(self, user):
         return user.subscribers_count
 
@@ -76,7 +76,7 @@ class RecipeAdmin(admin.ModelAdmin):
     def favorited_count(self, recipe):
         return recipe.favorited_count
 
-    @admin.display(description='Автор')
+    @admin.display(description='Автор', ordering='author__username')
     @mark_safe
     def author_link(self, recipe):
         return '<a href="{}">{}</a>'.format(
@@ -108,8 +108,20 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('name', 'measurement_unit')
+    list_display = ('name', 'measurement_unit', 'recipes_count')
     list_filter = ['measurement_unit']
+    search_fields = ['name']
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.annotate(
+            recipes_count=Count('recipes', distinct=True),
+        )
+
+    @admin.display(description='Количество рецептов',
+                   ordering='recipes_count')
+    def recipes_count(self, ingredient):
+        return ingredient.recipes_count
 
 
 @admin.register(Tag)
@@ -127,11 +139,12 @@ class TagAdmin(admin.ModelAdmin):
             recipes_count=Count('recipes', distinct=True),
         )
 
-    @admin.display(description='Количество рецептов')
+    @admin.display(description='Сколько раз применен',
+                   ordering='recipes_count')
     def recipes_count(self, tag):
         return tag.recipes_count
 
-    @admin.display(description='Цвет')
+    @admin.display(description='Цвет', ordering='color')
     @mark_safe
     def color_display(self, tag):
         return '<div style="background-color:{color}">{color}</div>'.format(

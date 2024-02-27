@@ -39,7 +39,7 @@ class IngredientSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class MealSerializer(serializers.ModelSerializer):
+class RecipeProductSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(
         source='ingredient', read_only=False,
         required=True, queryset=Ingredient.objects.all()
@@ -70,7 +70,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
     author = UserSerializer(read_only=True)
     tags = TagField(many=True, queryset=Tag.objects.all())
-    ingredients = MealSerializer(source='recipe_products', many=True)
+    ingredients = RecipeProductSerializer(source='recipe_products', many=True)
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
         min_value=constants.MIN_COOKING_TIME
@@ -100,10 +100,10 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate(data):
         for field in ['tags', 'recipe_products', 'image']:
             values = data.get(field)
-            if field == 'recipe_products':
-                values = [value['ingredient'] for value in values]
             if not values:
                 raise serializers.ValidationError({field: 'Пустое значение.'})
+            if field == 'recipe_products':
+                values = [value['ingredient'] for value in values]
             if isinstance(values, list):
                 duplicates = {
                     value for value in values if values.count(value) > 1
@@ -137,33 +137,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         return super().update(recipe, validated_data)
 
 
-class RecipeFavoriteShoppingSerializer(serializers.ModelSerializer):
-    favorited_by = serializers.PrimaryKeyRelatedField(
-        write_only=True, queryset=User.objects.all(), required=False
-    )
-    shopped_by = serializers.PrimaryKeyRelatedField(
-        write_only=True, queryset=User.objects.all(), required=False
-    )
+class RecipeReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = (
-            'id', 'name', 'image', 'cooking_time', 'favorited_by', 'shopped_by'
-        )
+        fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = fields
-
-    def update(self, recipe, validated_data):
-        user_favorited = validated_data.get('favorited_by')
-        user_shopped = validated_data.get('shopped_by')
-        if user_favorited:
-            if user_favorited in recipe.favorited_by.all():
-                raise serializers.ValidationError(constants.RECIPE_IN_FAVORITE)
-            recipe.favorited_by.add(user_favorited)
-        elif user_shopped:
-            if user_shopped in recipe.shopped_by.all():
-                raise serializers.ValidationError(constants.RECIPE_IN_SHOPPING)
-            recipe.shopped_by.add(user_shopped)
-        return recipe
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -191,7 +170,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         limit = int(self.context['request'].query_params.get(
             'recipes_limit', 10**10
         ))
-        recipe_serializer = RecipeFavoriteShoppingSerializer(
+        recipe_serializer = RecipeReadSerializer(
             subscribing.recipes.all()[:limit], many=True
         )
         return dict(

@@ -35,10 +35,10 @@ class User(AbstractUser):
             f'{self.last_name=:.30}'
         )
 
-    # def shopping_cart(self):
-    #     return Ingredient.objects.filter(
-    #         recipes__shopped_by=self
-    #     ).annotate(total_amount=models.Sum('meal__amount'))
+    def shopping_cart(self):
+        return Ingredient.objects.filter(
+            recipes__shopped_by=self
+        ).annotate(total_amount=models.Sum('recipe_products__amount'))
 
 
 class Subscription(models.Model):

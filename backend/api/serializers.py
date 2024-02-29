@@ -2,13 +2,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from recipes.constants import MIN_COOKING_TIME, MIN_INGREDIENT_AMOUNT
-from recipes.models import (
-    Ingredient, Recipe, RecipeProduct,
-    Subscription, Tag, User
-)
-
-SUBSCRIBE_SELF = 'Нельзя подписаться на самого себя.'
-EXIST_IN_SUBSCRIBING = 'Вы уже подписаны на пользователя {}'
+from recipes.models import Ingredient, Recipe, RecipeProduct, Tag, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -99,43 +93,61 @@ class RecipeSerializer(serializers.ModelSerializer):
         ).exists()
 
     @staticmethod
+    def check_empty(value):
+        if not value:
+            raise serializers.ValidationError('Пустое значение.')
+        return value
+
+    @staticmethod
+    def check_duplicates(values):
+        duplicates = {value for value in values if values.count(value) > 1}
+        if duplicates:
+            raise serializers.ValidationError(
+                f'Значения дублируются: {duplicates}'
+            )
+        return values
+
+    @staticmethod
     def validate(data):
-        for field in ['tags', 'recipe_products', 'image']:
-            values = data.get(field)
-            if not values:
-                raise serializers.ValidationError({field: 'Пустое значение.'})
-            if field == 'recipe_products':
-                values = [value['ingredient'] for value in values]
-            if isinstance(values, list):
-                duplicates = {
-                    value for value in values if values.count(value) > 1
-                }
-                if duplicates:
-                    raise serializers.ValidationError(
-                        {field: f'Значения дублируются: {duplicates}'}
-                    )
+        if 'tags' not in data:
+            raise serializers.ValidationError({'tags': 'Обязательное поле.'})
+        if 'recipe_products' not in data:
+            raise serializers.ValidationError(
+                {'ingredients': 'Обязательное поле.'}
+            )
         return data
 
+    def validate_image(self, image):
+        return self.check_empty(image)
+
+    def validate_tags(self, tags):
+        tags = self.check_empty(tags)
+        return self.check_duplicates(tags)
+
+    def validate_ingredients(self, products):
+        self.check_duplicates([
+            product['ingredient'] for product in self.check_empty(products)
+        ])
+        return products
+
     def create(self, validated_data):
-        ingredients = validated_data.pop('recipe_products')
+        products = validated_data.pop('recipe_products')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
-        RecipeProduct.objects.bulk_create([
-            RecipeProduct(recipe=recipe, **ingredient)
-            for ingredient in ingredients
-        ])
+        RecipeProduct.objects.bulk_create(
+            RecipeProduct(recipe=recipe, **product)
+            for product in products
+        )
         return recipe
 
     def update(self, recipe, validated_data):
-        if 'tags' in validated_data:
-            recipe.tags.set(validated_data.pop('tags'))
-        if 'recipe_products' in validated_data:
-            recipe.ingredients.clear()
-            RecipeProduct.objects.bulk_create([
-                RecipeProduct(recipe=recipe, **ingredient)
-                for ingredient in validated_data.pop('recipe_products')
-            ])
+        recipe.tags.set(validated_data.pop('tags'))
+        recipe.ingredients.clear()
+        RecipeProduct.objects.bulk_create(
+            RecipeProduct(recipe=recipe, **product)
+            for product in validated_data.pop('recipe_products')
+        )
         return super().update(recipe, validated_data)
 
 
@@ -145,40 +157,3 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = fields
-
-
-class SubscriptionSerializer(serializers.ModelSerializer):
-    subscribing = serializers.PrimaryKeyRelatedField(
-        write_only=True, queryset=User.objects.all()
-    )
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    class Meta:
-        model = Subscription
-        fields = ('user', 'subscribing')
-
-    def validate(self, data):
-        subscribing = data['subscribing']
-        user = self.context['request'].user
-        if subscribing == user:
-            raise serializers.ValidationError(SUBSCRIBE_SELF)
-        elif user.subscribed_to.filter(subscribing=subscribing).exists():
-            raise serializers.ValidationError(
-                EXIST_IN_SUBSCRIBING.format(subscribing.username)
-            )
-        return data
-
-    def to_representation(self, subscription):
-        subscribing = subscription.subscribing
-        user_serializer = UserSerializer(subscribing, context=self.context)
-        limit = int(self.context['request'].query_params.get(
-            'recipes_limit', 10**10
-        ))
-        recipe_serializer = RecipeReadSerializer(
-            subscribing.recipes.all()[:limit], many=True
-        )
-        return dict(
-            **user_serializer.data,
-            recipes=recipe_serializer.data,
-            recipes_count=subscribing.recipes.count()
-        )

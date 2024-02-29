@@ -26,14 +26,18 @@ class User(AbstractUser):
         verbose_name_plural = 'пользователи'
         ordering = ['username']
 
-    def __str__(self):
+    def __repr__(self):
         return (
+            f'<{type(self).__name__} '
             f'{self.pk=}, '
-            f'{self.username=}, '
+            f'{self.username=:.30}, '
             f'{self.email=:.30}, '
             f'{self.first_name=:.30}, '
-            f'{self.last_name=:.30}'
+            f'{self.last_name=:.30}>'
         )
+
+    def __str__(self):
+        return f'{self.username:.50}'
 
     def shopping_cart(self):
         return Ingredient.objects.filter(
@@ -64,8 +68,11 @@ class Subscription(models.Model):
         verbose_name = 'Подписка'
         verbose_name_plural = 'подписки'
 
+    def __repr__(self):
+        return f'<{type(self).__name__} {self.user=} {self.subscribing=}>'
+
     def __str__(self):
-        return f'{self.user=} {self.subscribing=}'
+        return f'{self.user} подписан на {self.subscribing}'
 
 
 class Tag(models.Model):
@@ -73,7 +80,7 @@ class Tag(models.Model):
         'Название', unique=True, max_length=constants.MAX_TAG_NAME
     )
     color = models.CharField(
-        'Цвет',
+        'Код цвета',
         unique=True,
         max_length=constants.MAX_TAG_COLOR,
         validators=[ColorValidator()]
@@ -86,13 +93,17 @@ class Tag(models.Model):
         verbose_name = 'Тег'
         verbose_name_plural = 'теги'
 
-    def __str__(self):
+    def __repr__(self):
         return (
+            f'<{type(self).__name__} '
             f'{self.pk=}, '
             f'{self.name=:.30}, '
             f'{self.color=}, '
-            f'{self.slug=:.30}'
+            f'{self.slug=:.30}>'
         )
+
+    def __str__(self):
+        return f'{self.name:.30}'
 
 
 class Ingredient(models.Model):
@@ -107,8 +118,16 @@ class Ingredient(models.Model):
         verbose_name = 'Продукт'
         verbose_name_plural = 'Продукты'
 
+    def __repr__(self):
+        return (
+            f'<{type(self).__name__} '
+            f'{self.pk=} '
+            f'{self.name=:.30} '
+            f'{self.measurement_unit=:.30}>'
+        )
+
     def __str__(self):
-        return f'{self.pk=}, {self.name:.30} ({self.measurement_unit:.30})'
+        return f'{self.name:.30} ({self.measurement_unit:.30})'
 
 
 class Recipe(models.Model):
@@ -148,8 +167,9 @@ class Recipe(models.Model):
         default_related_name = 'recipes'
         ordering = ['-pub_date']
 
-    def __str__(self):
+    def __repr__(self):
         return (
+            f'<{type(self).__name__} '
             f'{self.pk=}, '
             f'{self.name=:.50}, '
             f'{self.author.username=}, '
@@ -160,8 +180,11 @@ class Recipe(models.Model):
             f'{self.tags=}, '
             f'{self.pub_date=}, '
             f'{self.favorited_by=}, '
-            f'{self.shopped_by=}'
+            f'{self.shopped_by=}>'
         )
+
+    def __str__(self):
+        return f'{self.name:.50}'
 
 
 class RecipeProduct(models.Model):
@@ -187,5 +210,14 @@ class RecipeProduct(models.Model):
             ),
         ]
 
+    def __repr__(self):
+        return (
+            f'<{type(self).__name__} '
+            f'{self.pk=} '
+            f'{self.recipe=} '
+            f'{self.ingredient=} '
+            f'{self.amount=}>'
+        )
+
     def __str__(self):
-        return f'{self.recipe=}, {self.ingredient=} {self.amount=}'
+        return f'{self.recipe}: {self.ingredient} - {self.amount}'

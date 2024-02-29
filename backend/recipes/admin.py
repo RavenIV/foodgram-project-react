@@ -94,16 +94,16 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='Теги')
     @mark_safe
     def tags_display(self, recipe):
-        return '<br>'.join([tag.name for tag in recipe.tags.all()])
+        return '<br>'.join(tag.name for tag in recipe.tags.all())
 
     @admin.display(description='Продукты')
     @mark_safe
     def ingredients_display(self, recipe):
-        return '<br>'.join([
-            f'{product.ingredient.name} - '
-            f'{product.amount} {product.ingredient.measurement_unit}'
+        return '<br>'.join(
+            f'{product.amount} {product.ingredient.measurement_unit} - '
+            f'{product.ingredient.name:.30} - '
             for product in recipe.recipe_products.all()
-        ])
+        )
 
 
 @admin.register(Ingredient)
@@ -128,6 +128,7 @@ class IngredientAdmin(admin.ModelAdmin):
 class TagAdmin(admin.ModelAdmin):
     list_display = (
         'name',
+        'color',
         'color_display',
         'slug',
         'recipes_count'
@@ -146,9 +147,9 @@ class TagAdmin(admin.ModelAdmin):
 
     @admin.display(description='Цвет', ordering='color')
     @mark_safe
-    def color_display(self, tag):
-        return '<div style="background-color:{color}">{color}</div>'.format(
-            color=tag.color
+    def color_display(self, tag: Tag):
+        return (
+            f'<table><td style="background-color:{tag.color}"></td></table>'
         )
 
 
@@ -159,7 +160,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 admin.site.unregister(Group)
 admin.site.site_header = 'Foodgram Admin'
-admin.site.site_title = 'Foodgram Admin Portal'
+admin.site.site_title = 'Портал администратора Foodgram'
 admin.site.index_title = (
     'Добро пожаловать на портал администратора Foodgram'
 )

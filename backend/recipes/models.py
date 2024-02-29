@@ -3,7 +3,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 from . import constants
-from .validators import UsernameValidator, ColorValidator
+from .validators import ColorValidator, validate_username
 
 
 class User(AbstractUser):
@@ -12,7 +12,7 @@ class User(AbstractUser):
         'Ник',
         max_length=constants.MAX_USERNAME,
         unique=True,
-        validators=[UsernameValidator()]
+        validators=[validate_username]
     )
     first_name = models.CharField('Имя', max_length=constants.MAX_FIRST_NAME)
     last_name = models.CharField('Фамилия', max_length=constants.MAX_LAST_NAME)

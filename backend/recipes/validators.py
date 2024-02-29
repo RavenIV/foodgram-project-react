@@ -1,10 +1,20 @@
+import re
+
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 
-from .constants import USERNAME_REGEX
+from .constants import INVALID_USERNAMES
 
 
-class UsernameValidator(RegexValidator):
-    regex = USERNAME_REGEX
+def validate_username(username):
+    if username in INVALID_USERNAMES:
+        raise ValidationError(f'Нельзя использовать {username} как username')
+    invalid_symbols = re.findall(r'[^\w.@+-]', username)
+    if invalid_symbols:
+        raise ValidationError(
+            f'Нельзя использовать символы {set(invalid_symbols)}'
+        )
+    return username
 
 
 class ColorValidator(RegexValidator):

@@ -29,21 +29,21 @@ class CookingTimeListFilter(SimpleListFilter):
             return recipes
         max_cook_time = Max('cooking_time', default=0)
         min_cook_time = Min('cooking_time', default=0)
-        bin_1 = (max_cook_time - min_cook_time) / 3
+        bin = (max_cook_time - min_cook_time) / 3
         result = recipes.aggregate(
-            bin_0=min_cook_time,
-            bin_1=bin_1,
-            bin_2=bin_1 * 2,
-            bin_3=max_cook_time + 1
+            min_cook_time=min_cook_time,
+            medium_cook_time=bin,
+            long_cook_time=bin * 2,
+            max_cook_time=max_cook_time + 1
         )
         if filter == 'fast':
-            bin = (result['bin_0'], result['bin_1'])
+            interval = (result['min_cook_time'], result['medium_cook_time'])
         elif filter == 'medium':
-            bin = (result['bin_1'], result['bin_2'])
+            interval = (result['medium_cook_time'], result['long_cook_time'])
         elif filter == 'long':
-            bin = (result['bin_2'], result['bin_3'])
-        return recipes.filter(cooking_time__gte=bin[0],
-                              cooking_time__lt=bin[1])
+            interval = (result['long_cook_time'], result['max_cook_time'])
+        return recipes.filter(cooking_time__gte=interval[0],
+                              cooking_time__lt=interval[1])
 
     def lookups(self, request, model_admin):
         recipes = model_admin.get_queryset(request)

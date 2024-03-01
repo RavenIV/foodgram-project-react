@@ -37,9 +37,6 @@ EXIST_IN_SUBSCRIBING = 'Вы уже подписаны на пользовате
 class UserViewSet(DjoserUserViewset):
     http_method_names = ['get', 'post']
 
-    def get_queryset(self):
-        return User.objects.all()
-
     def get_permissions(self):
         if self.action == 'me':
             return [IsAuthenticated()]

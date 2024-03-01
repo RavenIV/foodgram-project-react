@@ -72,7 +72,8 @@ class RecipeAdmin(admin.ModelAdmin):
             favorited_count=Count('favorited_by', distinct=True),
         )
 
-    @admin.display(description='Добавлено в избранное')
+    @admin.display(description='Добавлено в избранное',
+                   ordering='favorited_count')
     def favorited_count(self, recipe):
         return recipe.favorited_count
 
@@ -159,8 +160,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 
 admin.site.unregister(Group)
-admin.site.site_header = 'Foodgram Admin'
+admin.site.site_header = 'Портал администратора Foodgram'
 admin.site.site_title = 'Портал администратора Foodgram'
 admin.site.index_title = (
-    'Добро пожаловать на портал администратора Foodgram'
+    'Добро пожаловать на портал администратора Foodgram!'
 )

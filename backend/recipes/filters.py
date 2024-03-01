@@ -1,7 +1,5 @@
-from typing import Any
 from django.contrib.admin import SimpleListFilter
-from django.db.models import Sum, Max, Min
-from django.db.models.query import QuerySet
+from django.db.models import Max, Min
 
 
 class SubscriptionListFilter(SimpleListFilter):
@@ -32,10 +30,11 @@ class CookingTimeListFilter(SimpleListFilter):
         max_cook_time = Max('cooking_time', default=0)
         min_cook_time = Min('cooking_time', default=0)
         bin_1 = (max_cook_time - min_cook_time) / 3
-        bin_2 = bin_1 * 2
-        bin_3 = max_cook_time + 1
         result = recipes.aggregate(
-            bin_0=min_cook_time, bin_1=bin_1, bin_2=bin_2, bin_3=bin_3
+            bin_0=min_cook_time,
+            bin_1=bin_1,
+            bin_2=bin_1 * 2,
+            bin_3=max_cook_time + 1
         )
         if filter == 'fast':
             bin = (result['bin_0'], result['bin_1'])

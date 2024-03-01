@@ -101,8 +101,8 @@ class RecipeAdmin(admin.ModelAdmin):
     @mark_safe
     def ingredients_display(self, recipe):
         return '<br>'.join(
-            f'{product.amount} {product.ingredient.measurement_unit} - '
-            f'{product.ingredient.name:.30} - '
+            f'{product.amount} {product.ingredient.measurement_unit:.30} - '
+            f'{product.ingredient.name:.30}'
             for product in recipe.recipe_products.all()
         )
 

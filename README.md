@@ -89,19 +89,11 @@ python3 manage.py runserver
 
 Для загрузки ингредиентов и тегов в базу данных, находясь в директории backend/, выполните команды:
 
-* Если у вас Linux/macOS
+```
+python manage.py load_ingredients ../data/ingredients.json
+python manage.py load_tags ../data/tags.json
+```
 
-    ```
-    python manage.py load_ingredients ../data/ingredients.json
-    python manage.py load_tags ../data/tags.json
-    ```
-
-* Если у вас windows
-
-    ```
-    python -Xutf8 manage.py load_ingredients ../data/ingredients.json
-    python -Xutf8 manage.py load_tags ../data/tags.json
-    ```
 
 ## Разработчики
 

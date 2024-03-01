@@ -19,7 +19,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         filename = self.check_filename(options['filename'])
-        with open(filename) as file:
+        with open(filename, encoding='utf-8') as file:
             ingredients = Ingredient.objects.bulk_create(
                 [Ingredient(**data) for data in json.load(file)]
             )

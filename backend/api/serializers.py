@@ -115,9 +115,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         return self.check_duplicates(tags)
 
     def validate_ingredients(self, products):
-        return self.check_duplicates([
+        self.check_duplicates([
             product['ingredient'] for product in self.check_empty(products)
         ])
+        return products
 
     def create(self, validated_data):
         products = validated_data.pop('recipe_products')

@@ -55,7 +55,7 @@ class SubscriptionsListView(ListAPIView):
     def get_data(self, subscriptions):
         return [
             get_subscribing_data(
-                subscription.subscribing, context={'request': self.request}
+                subscription.subscribing, self.request
             ) for subscription in subscriptions
         ]
 
@@ -80,10 +80,8 @@ class SubscribeView(APIView):
                 EXIST_IN_SUBSCRIBING.format(subscribing.username)
             )
         Subscription.objects.create(user=user, subscribing=subscribing)
-        return Response(
-            get_subscribing_data(subscribing, context={'request': request}),
-            status=status.HTTP_201_CREATED
-        )
+        return Response(get_subscribing_data(subscribing, request),
+                        status=status.HTTP_201_CREATED)
 
     def delete(self, request, user_id):
         subscribing = get_object_or_404(User, pk=user_id)

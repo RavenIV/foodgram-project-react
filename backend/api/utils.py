@@ -1,4 +1,8 @@
 from datetime import datetime
+from typing import Union
+
+from django.http import HttpRequest
+from rest_framework.request import Request
 
 from recipes.models import User
 from .serializers import UserSerializer, RecipeReadSerializer
@@ -24,10 +28,11 @@ def create_shopping_list(user: User) -> str:
     ])
 
 
-def get_subscribing_data(subscribing: User, context: dict) -> dict:
-    limit = int(context['request'].GET.get('recipes_limit', 10**10))
+def get_subscribing_data(subscribing: User,
+                         request: Union[HttpRequest, Request]) -> dict:
+    limit = int(request.GET.get('recipes_limit', 10**10))
     return dict(
-        UserSerializer(subscribing, context=context).data,
+        UserSerializer(subscribing, context={'request': request}).data,
         recipes=RecipeReadSerializer(
             subscribing.recipes.all()[:limit], many=True
         ).data,

@@ -100,22 +100,12 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def check_duplicates(values):
-        duplicates = {value for value in values if values.count(value) > 1}
+        duplicates = {value.id for value in values if values.count(value) > 1}
         if duplicates:
             raise serializers.ValidationError(
                 f'Значения дублируются: {duplicates}'
             )
         return values
-
-    @staticmethod
-    def validate(data):
-        if 'tags' not in data:
-            raise serializers.ValidationError({'tags': 'Обязательное поле.'})
-        if 'recipe_products' not in data:
-            raise serializers.ValidationError(
-                {'ingredients': 'Обязательное поле.'}
-            )
-        return data
 
     def validate_image(self, image):
         return self.check_empty(image)
@@ -125,10 +115,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         return self.check_duplicates(tags)
 
     def validate_ingredients(self, products):
-        self.check_duplicates([
+        return self.check_duplicates([
             product['ingredient'] for product in self.check_empty(products)
         ])
-        return products
 
     def create(self, validated_data):
         products = validated_data.pop('recipe_products')
@@ -142,12 +131,14 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, recipe, validated_data):
-        recipe.tags.set(validated_data.pop('tags'))
-        recipe.ingredients.clear()
-        RecipeProduct.objects.bulk_create(
-            RecipeProduct(recipe=recipe, **product)
-            for product in validated_data.pop('recipe_products')
-        )
+        if 'tags' in validated_data:
+            recipe.tags.set(validated_data.pop('tags'))
+        if 'recipe_products' in validated_data:
+            recipe.ingredients.clear()
+            RecipeProduct.objects.bulk_create(
+                RecipeProduct(recipe=recipe, **product)
+                for product in validated_data.pop('recipe_products')
+            )
         return super().update(recipe, validated_data)
 
 

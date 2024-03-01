@@ -149,3 +149,21 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
         read_only_fields = fields
+
+
+class SubscribingSerializer(UserSerializer):
+
+    class Meta(UserSerializer.Meta):
+        read_only_fields = UserSerializer.Meta.fields
+
+    def to_representation(self, user):
+        limit = int(
+            self.context['request'].query_params.get('recipes_limit', 10**10)
+        )
+        return dict(
+            **super().to_representation(user),
+            recipes=RecipeReadSerializer(
+                user.recipes.all()[:limit], many=True
+            ).data,
+            recipes_count=user.recipes.count()
+        )

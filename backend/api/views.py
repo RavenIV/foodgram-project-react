@@ -1,5 +1,3 @@
-from io import BytesIO
-
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -22,8 +20,9 @@ from .serializers import (
     RecipeReadSerializer,
     RecipeSerializer,
     TagSerializer,
+    SubscribingSerializer
 )
-from .utils import create_shopping_list, get_subscribing_data
+from .utils import create_shopping_list
 
 RECIPE_NOT_IN_FAVORITE = 'Рецепт {} не добавлен в избранное.'
 RECIPE_IN_FAVORITE = 'Рецепт {} уже есть в избранном.'
@@ -45,23 +44,10 @@ class UserViewSet(DjoserUserViewset):
 
 class SubscriptionsListView(ListAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = SubscribingSerializer
 
     def get_queryset(self):
-        return self.request.user.subscribed_to.all()
-
-    def get_data(self, subscriptions):
-        return [
-            get_subscribing_data(
-                subscription.subscribing, self.request
-            ) for subscription in subscriptions
-        ]
-
-    def list(self, request, *args, **kwargs):
-        subscriptions = self.get_queryset()
-        page = self.paginate_queryset(subscriptions)
-        if not page:
-            return self.get_data(subscriptions)
-        return self.get_paginated_response(self.get_data(page))
+        return User.objects.filter(subscribers__user=self.request.user)
 
 
 class SubscribeView(APIView):
@@ -72,18 +58,21 @@ class SubscribeView(APIView):
         user = request.user
         if subscribing == user:
             raise ValidationError(SUBSCRIBE_SELF)
-        elif user.subscribed_to.filter(subscribing=subscribing).exists():
+        if user.subscribed_to.filter(subscribing=subscribing).exists():
             raise ValidationError(
                 EXIST_IN_SUBSCRIBING.format(subscribing.username)
             )
         Subscription.objects.create(user=user, subscribing=subscribing)
-        return Response(get_subscribing_data(subscribing, request),
-                        status=status.HTTP_201_CREATED)
+        return Response(
+            SubscribingSerializer(
+                subscribing, context={'request': request}
+            ).data,
+            status=status.HTTP_201_CREATED
+        )
 
     def delete(self, request, user_id):
-        subscribing = get_object_or_404(User, pk=user_id)
         get_object_or_404(
-            Subscription, subscribing=subscribing, user=request.user
+            Subscription, subscribing=user_id, user=request.user
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -168,7 +157,7 @@ class RecipeViewSet(ModelViewSet):
     @action(['get'], detail=False)
     def download_shopping_cart(self, request):
         return FileResponse(
-            BytesIO(create_shopping_list(request.user).encode('utf-8')),
+            create_shopping_list(request.user),
             filename='shopping_list.txt',
             as_attachment=True
         )

@@ -9,10 +9,10 @@ from .constants import INVALID_USERNAMES
 def validate_username(username):
     if username in INVALID_USERNAMES:
         raise ValidationError(f'Нельзя использовать {username} как username')
-    invalid_symbols = re.findall(r'[^\w.@+-]', username)
+    invalid_symbols = re.sub(r'[\w.@+-]+', '', username)
     if invalid_symbols:
         raise ValidationError(
-            f'Нельзя использовать символы {set(invalid_symbols)}'
+            f'Нельзя использовать символы {"".join(set(invalid_symbols))}'
         )
     return username
 

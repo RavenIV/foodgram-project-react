@@ -24,7 +24,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'пользователи'
-        ordering = ['username']
+        ordering = ('username',)
 
     def __repr__(self):
         return (
@@ -165,7 +165,7 @@ class Recipe(models.Model):
         verbose_name = 'Рецепт'
         verbose_name_plural = 'рецепты'
         default_related_name = 'recipes'
-        ordering = ['-pub_date']
+        ordering = ('-pub_date',)
 
     def __repr__(self):
         return (

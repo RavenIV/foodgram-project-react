@@ -1,5 +1,7 @@
+from typing import Any
 from django.contrib.admin import SimpleListFilter
-from django.db.models import Sum
+from django.db.models import Sum, Max, Min
+from django.db.models.query import QuerySet
 
 
 class SubscriptionListFilter(SimpleListFilter):
@@ -23,36 +25,37 @@ class CookingTimeListFilter(SimpleListFilter):
     title = 'Время приготовления'
     parameter_name = 'cooking_time'
 
-    def filter_recipes(self, recipes, filter):
-        if not recipes:
-            return
-        bin = recipes.aggregate(Sum('cooking_time'))['cooking_time__sum'] / 3
-        if filter == 'medium':
-            bin *= 2
-        if filter == 'long':
-            bin *= 3
-        return recipes.filter(cooking_time__lte=bin)
-
-    def count_filter(self, recipes, filter):
-        recipes = self.filter_recipes(recipes, filter)
-        if not recipes:
-            return 0
-        return recipes.count()
+    @staticmethod
+    def filter_recipes(recipes, filter):
+        if not recipes or not filter:
+            return recipes
+        max_cook_time = Max('cooking_time', default=0)
+        min_cook_time = Min('cooking_time', default=0)
+        bin_1 = (max_cook_time - min_cook_time) / 3
+        bin_2 = bin_1 * 2
+        bin_3 = max_cook_time + 1
+        result = recipes.aggregate(
+            bin_0=min_cook_time, bin_1=bin_1, bin_2=bin_2, bin_3=bin_3
+        )
+        if filter == 'fast':
+            bin = (result['bin_0'], result['bin_1'])
+        elif filter == 'medium':
+            bin = (result['bin_1'], result['bin_2'])
+        elif filter == 'long':
+            bin = (result['bin_2'], result['bin_3'])
+        return recipes.filter(cooking_time__gte=bin[0],
+                              cooking_time__lt=bin[1])
 
     def lookups(self, request, model_admin):
         recipes = model_admin.get_queryset(request)
-        lookups = []
-        for filter, name in [
-            ('fast', 'быстрые'),
-            ('medium', 'средние'),
-            ('long', 'долгие')
-        ]:
-            lookups.append(
-                (filter, f'{name}: {self.count_filter(recipes, filter)}')
-            )
-        return lookups
+        return (
+            (lookup, name.format(self.filter_recipes(recipes, lookup).count()))
+            for lookup, name in [
+                ('fast', 'быстрые: {}'),
+                ('medium', 'средние: {}'),
+                ('long', 'долгие: {}')
+            ]
+        )
 
     def queryset(self, request, recipes):
-        if not self.value():
-            return recipes
         return self.filter_recipes(recipes, self.value())

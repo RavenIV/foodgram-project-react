@@ -1,0 +1,8 @@
+venv
+.git
+.gitkeep
+db.sqlite3
+.idea
+.vscode
+.env
+media

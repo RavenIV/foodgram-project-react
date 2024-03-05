@@ -1,5 +1,7 @@
 # FOODGRAM
 
+[![Main Foodgram workflow](https://github.com/RavenIV/foodgram-project-react/actions/workflows/main.yml/badge.svg)](https://github.com/RavenIV/foodgram-project-react/actions/workflows/main.yml)
+
 **Foodgram** - сайт, на котором пользователи могут публиковать рецепты, 
 добавлять чужие рецепты в избранное и подписываться на публикации других авторов. 
 Пользователям также доступно создание списка продуктов, которые необходимо купить 
@@ -20,22 +22,71 @@
 
 Установить [Docker](https://www.docker.com/).
 
-Клонировать репозиторий:
+Клонировать репозиторий и перейти в него в командной строке:
 
 ```
+cd foodgram-project-react/
 git clone git@github.com:RavenIV/foodgram-project-react.git
 ```
 
-Перейти в директорию infra/ и выполнить команду:
+Скопировать содержание .env.example в .env
+
+Собрать контейнеры и выполнить команду:
+
 ```
-cd foodgram-project-react/infra/
-docker compose up
+docker compose up -d
+```
+
+Выполнить миграции:
+```
+docker compose exec backend python manage.py migrate
+```
+
+Собрать и перенести статику бэкенда:
+
+```
+docker compose exec backend python manage.py collectstatic
+docker compose exec backend cp -r /app/collected_static/. /backend_static/static/
 ```
 
 Спецификация API будет доступна по адресу http://localhost/api/docs/
 
 
-## Запустить бэкенд-приложение
+## Демо
+
+[**foodgram**](https://foodgram-iv.sytes.net/)
+
+
+## Переменные окружения
+
+
+В файл .env также можно добавить:
+
+* IP-адрес, доменное имя
+
+```
+ALLOWED_HOSTS=127.0.0.1,localhost,<your_host>,<domain_name>
+```
+
+* порт PostgreSQL в контейнере (по умолчанию 5432)
+
+```
+DB_PORT=0000
+``` 
+
+* включение режима разработки
+
+```
+DEBUG=True
+``` 
+
+* использование SQLite
+
+```
+USE_SQLITE=True
+```
+
+## Запустить бэкенд-приложение локально
 
 Перейти в директорию бэкенд-приложения в командной строке:
 
@@ -85,13 +136,13 @@ python3 manage.py runserver
 
 ## Иморт данных
 
-В директории data/ доступны файлы в формате .json с ингредиентами и тегами.
+В директории backend/data/ доступны файлы в формате .json с ингредиентами и тегами.
 
 Для загрузки ингредиентов и тегов в базу данных, находясь в директории backend/, выполните команды:
 
 ```
-python manage.py load_ingredients ../data/ingredients.json
-python manage.py load_tags ../data/tags.json
+python manage.py load_ingredients data/ingredients.json
+python manage.py load_tags data/tags.json
 ```
 
 

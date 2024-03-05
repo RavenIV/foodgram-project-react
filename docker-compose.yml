@@ -28,8 +28,8 @@ services:
     volumes:
       - static:/static
 
-  nginx:
-    image: nginx:1.19.3
+  gateway:
+    image: ivorontsova5/foodgram_gateway
     env_file: .env
     depends_on:
       - frontend
@@ -37,7 +37,6 @@ services:
     ports:
       - 7000:80
     volumes:
-      - ./nginx.conf:/etc/nginx/templates/default.conf.template
       - static:/static
-      - ../docs/:/static/api/docs/
+      - ./docs/:/static/api/docs/
       - media:/media

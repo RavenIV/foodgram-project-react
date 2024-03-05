@@ -120,7 +120,7 @@ DJOSER = {
         'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
         'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
     },
-
+    'HIDE_USERS': False,
 }
 
 LANGUAGE_CODE = 'ru-Ru'

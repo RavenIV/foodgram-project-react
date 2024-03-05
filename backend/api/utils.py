@@ -13,7 +13,7 @@ def create_shopping_list(user: User) -> str:
         *[f'* {recipe.name}' for recipe in user.shopping_recipes.all()],
         '',
         'Продукты:',
-        *[f'{index}. {line}\n' for index, line in enumerate(
+        *[f'{index}. {line}' for index, line in enumerate(
             [
                 f'{product.total_amount} {product.measurement_unit} - '
                 f'{product.name}'for product in user.shopping_cart()

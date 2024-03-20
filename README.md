@@ -143,5 +143,4 @@ python manage.py load_tags data/tags.json
 
 ## Разработчики
 
-
 * [Irina Vorontsova](https://github.com/RavenIV) - бэкенд

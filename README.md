@@ -17,7 +17,6 @@
 * Docker
 * Gunicorn
 
-
 ## Запустить проект 
 
 Установить [Docker](https://www.docker.com/).

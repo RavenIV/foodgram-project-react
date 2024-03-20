@@ -52,11 +52,6 @@ docker compose exec backend cp -r /app/collected_static/. /backend_static/static
 Спецификация API будет доступна по адресу http://localhost/api/docs/
 
 
-## Демо
-
-[**foodgram**](https://foodgram-iv.sytes.net/)
-
-
 ## Переменные окружения
 
 
